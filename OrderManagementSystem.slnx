@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Docs/">
+    <File Path="business-rules.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="CatalogService.UnitTests/CatalogService.UnitTests.csproj" />
+    <Project Path="NotificationService.UnitTests/NotificationService.UnitTests.csproj" />
+    <Project Path="OrderService.UnitTests/OrderService.UnitTests.csproj" />
+  </Folder>
+  <Project Path="BackofficePortal/BackofficePortal.csproj" />
+  <Project Path="CatalogService/CatalogService.csproj" />
+  <Project Path="NotificationService/NotificationService.csproj" />
+  <Project Path="OrderService/OrderService.csproj" />
+  <Project Path="Shared/Shared.csproj" />
+</Solution>
