@@ -1,4 +1,6 @@
 
+using Microsoft.AspNetCore.DataProtection;
+
 var builder = WebApplication.CreateBuilder(args);
 // Ensure data protection keys are persisted so antiforgery tokens survive app restarts
 
@@ -10,6 +12,29 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 
+// Add antiforgery services
+builder.Services.AddAntiforgery(options => {
+    // options.HeaderName = "X-CSRF-TOKEN"; // Uncomment and configure if you use a custom header
+});
+
+// Configure Data Protection to use a shared file system
+var keysDirectoryPath = Environment.GetEnvironmentVariable("DATA_PROTECTION_KEYS_PATH");
+
+if (string.IsNullOrEmpty(keysDirectoryPath))
+{
+    // Fallback to a local path if environment variable is not set.
+    // IMPORTANT: This fallback is NOT suitable for production microservices in Docker
+    // as it will use a local path within the container that isn't shared.
+    keysDirectoryPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
+    Console.WriteLine($"Warning: DATA_PROTECTION_KEYS_PATH environment variable not set. Using fallback path: {keysDirectoryPath}");
+}
+
+// Ensure the directory exists
+Directory.CreateDirectory(keysDirectoryPath);
+
+builder.Services.AddDataProtection()
+    .SetApplicationName("backoffice-portal") // Use a unique application name for each microservice
+    .PersistKeysToFileSystem(new DirectoryInfo(keysDirectoryPath));
 
 
 // Persist data protection keys to Redis so multiple instances can share the key ring
@@ -41,13 +66,15 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.Use(async (context, next) =>
-{
-    context.Response.Cookies.Delete(".AspNetCore.Antiforgery");
-    await next();
-});
+//app.Use(async (context, next) =>
+//{
+//    context.Response.Cookies.Delete(".AspNetCore.Antiforgery");
+//    await next();
+//});
+
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseAntiforgery(); // This should typically come after UseRouting and before UseAuthorization
 
 // Enable session middleware (services.AddSession was registered earlier)
 app.UseSession();

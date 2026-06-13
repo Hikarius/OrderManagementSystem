@@ -19,6 +19,9 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - Redis__Configuration=redis:6379
+      - DATA_PROTECTION_KEYS_PATH=/app/data-keys # Set the environment variable inside the container
+    volumes:
+      - /path/on/host/docker-keys:/app/data-keys # Mount the host directory to the container
     ports:
       - "5000:8080"
       - "5001:8443"
