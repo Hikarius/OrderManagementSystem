@@ -56,7 +56,7 @@ namespace OrderService.Controllers
             return Ok(new { token });
         }
 
-        public class LoginModel { public string Username { get; set; } public string Password { get; set; } }
+        public class LoginModel { public required string Username { get; set; } public required string Password { get; set; } }
 
         [HttpPost("AddOrder")]
         public async Task<IActionResult> AddOrder([FromBody] AddOrderCommand command, CancellationToken cancellationToken = default)

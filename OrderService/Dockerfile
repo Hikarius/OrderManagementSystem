@@ -12,15 +12,25 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["OrderManagementSystem.slnx", "./"]
 COPY ["OrderService/OrderService.csproj", "OrderService/"]
-RUN dotnet restore "./OrderService/OrderService.csproj"
-COPY . .
+COPY ["Shared/Shared.csproj", "Shared/"]
+COPY ["BackofficePortal/BackofficePortal.csproj", "BackofficePortal/"]
+COPY ["CatalogService/CatalogService.csproj", "CatalogService/"]
+COPY ["NotificationService/NotificationService.csproj", "NotificationService/"]
+COPY ["CatalogService.UnitTests/CatalogService.UnitTests.csproj", "CatalogService.UnitTests/"]
+COPY ["NotificationService.UnitTests/NotificationService.UnitTests.csproj", "NotificationService.UnitTests/"]
+COPY ["OrderService.UnitTests/OrderService.UnitTests.csproj", "OrderService.UnitTests/"]
+RUN dotnet restore "./OrderManagementSystem.slnx"
+COPY ["OrderService/", "OrderService/"]
+COPY ["Shared/", "Shared/"]
 WORKDIR "/src/OrderService"
 RUN dotnet build "./OrderService.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/OrderService"
 RUN dotnet publish "./OrderService.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)

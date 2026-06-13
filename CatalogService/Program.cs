@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using CatalogService.Data;
 using Shared.Infrastructure.Data;
 using FluentValidation;
@@ -78,7 +79,27 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Conditionally apply pending EF Core migrations on startup when MIGRATE_ON_STARTUP=true
+var migrateOnStartup = (Environment.GetEnvironmentVariable("MIGRATE_ON_STARTUP") ?? app.Configuration["MigrateOnStartup"])?.ToLower() == "true";
+if (migrateOnStartup)
+{
+    using var scope = app.Services.CreateScope();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<CatalogService.Data.DataContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the database for CatalogService.");
+        throw;
+    }
+}
+
 app.UseHttpsRedirection();
+// Global exception handling middleware (Problem Details) from Shared
+app.UseMiddleware<Shared.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

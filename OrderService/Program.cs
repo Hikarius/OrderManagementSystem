@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+// Ensure EF Core extension methods are available (kept for clarity)
 using MassTransit;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -88,7 +89,26 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Apply pending EF Core migrations automatically on startup
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<OrderService.Data.DataContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the database for OrderService.");
+        throw;
+    }
+}
+
 app.UseHttpsRedirection();
+
+// Global exception handling middleware (Problem Details) from Shared
+app.UseMiddleware<Shared.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
