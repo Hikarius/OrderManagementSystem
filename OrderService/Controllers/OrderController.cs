@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using OrderService.Application.Handlers;
 using OrderService.Application.Queries;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 
 namespace OrderService.Controllers
@@ -21,6 +24,39 @@ namespace OrderService.Controllers
             _mediator = mediator;
             _orderQueries = orderQueries;
         }
+
+        [HttpPost("/auth/login")]
+        public IActionResult Login([FromBody] LoginModel model)
+        {
+            // WARNING: This is a demo login for local development only.
+            if (model == null)
+                return Unauthorized();
+
+            // simple demo users: admin and operator (password both 'pass')
+            var isAdmin = model.Username == "admin" && model.Password == "pass";
+            var isOperator = model.Username == "operator" && model.Password == "pass";
+            if (!isAdmin && !isOperator)
+                return Unauthorized();
+
+            var role = isAdmin ? "admin" : "operator";
+
+            var claims = new[] {
+                new Claim(ClaimTypes.Name, model.Username ?? string.Empty),
+                new Claim(ClaimTypes.Role, role)
+            };
+
+            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("change_this_in_production"));
+            var creds = new JwtSecurityToken(
+                issuer: "local",
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+            );
+            var token = new JwtSecurityTokenHandler().WriteToken(creds);
+            return Ok(new { token });
+        }
+
+        public class LoginModel { public string Username { get; set; } public string Password { get; set; } }
 
         [HttpPost("AddOrder")]
         public async Task<IActionResult> AddOrder([FromBody] AddOrderCommand command, CancellationToken cancellationToken = default)

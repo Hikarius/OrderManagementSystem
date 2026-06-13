@@ -3,6 +3,7 @@ using CatalogService.Application.Queries;
 using MassTransit.Mediator;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using IMediator = MediatR.IMediator;
 
 namespace CatalogService.Controllers
@@ -36,6 +37,7 @@ namespace CatalogService.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteProduct([FromRoute] Guid id, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)

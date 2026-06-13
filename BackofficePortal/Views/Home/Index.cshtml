@@ -4,5 +4,38 @@
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <p>Backoffice Portal - use tabs to access services. <a asp-action="Login">Login</a> to authenticate.</p>
+
+    <ul class="nav nav-tabs" id="serviceTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">Orders</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="catalog-tab" data-bs-toggle="tab" data-bs-target="#catalog" type="button" role="tab">Catalog</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="notification-tab" data-bs-toggle="tab" data-bs-target="#notification" type="button" role="tab">Notification</button>
+      </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+      <div class="tab-pane fade show active" id="orders" role="tabpanel">
+        <p>
+            <a class="btn btn-sm btn-secondary" href="/Home/GetOrders">Load Orders</a>
+        </p>
+        <div id="ordersContent"></div>
+      </div>
+      <div class="tab-pane fade" id="catalog" role="tabpanel">
+        <p>
+            <a class="btn btn-sm btn-secondary" href="/Home/GetProducts">Load Products</a>
+        </p>
+        <div id="catalogContent"></div>
+      </div>
+      <div class="tab-pane fade" id="notification" role="tabpanel">
+        <p>
+            <a class="btn btn-sm btn-secondary" href="/Home/GetNotifications">Load Notifications</a>
+        </p>
+        <div id="notificationContent"></div>
+      </div>
+    </div>
 </div>
