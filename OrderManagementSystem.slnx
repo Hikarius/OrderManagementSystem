@@ -1,6 +1,11 @@
 <Solution>
   <Folder Name="/Docs/">
+    <File Path="../../../Downloads/Mimari Diyagram.drawio" />
     <File Path="business-rules.md" />
+  </Folder>
+  <Folder Name="/Docs/adr/">
+    <File Path="Database-per-service.md" />
+    <File Path="Docker.md" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="CatalogService.UnitTests/CatalogService.UnitTests.csproj" />
