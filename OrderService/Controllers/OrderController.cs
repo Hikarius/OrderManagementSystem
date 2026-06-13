@@ -27,7 +27,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("/auth/login")]
-        []
+        [AllowAnonymous]
         public IActionResult Login([FromBody] LoginModel model)
         {
             // WARNING: This is a demo login for local development only.
