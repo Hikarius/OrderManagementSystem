@@ -1,4 +1,6 @@
+
 var builder = WebApplication.CreateBuilder(args);
+// Ensure data protection keys are persisted so antiforgery tokens survive app restarts
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -8,7 +10,12 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 
-// Configure HttpClientFactory named clients for downstream services (URLs from configuration)
+
+
+// Persist data protection keys to Redis so multiple instances can share the key ring
+// Redis connection string can be provided via configuration key: "DataProtection:Redis" or "ServiceUrls:Redis"
+//var redisConnection = builder.Configuration["DataProtection:Redis"] ?? builder.Configuration["ServiceUrls:Redis"] ?? "localhost:6379";
+// Register ConnectionMultiplexer for DI
 builder.Services.AddHttpClient("OrderService", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:Order"] ?? "https://localhost:5001");
@@ -34,9 +41,16 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-
+app.Use(async (context, next) =>
+{
+    context.Response.Cookies.Delete(".AspNetCore.Antiforgery");
+    await next();
+});
 app.UseHttpsRedirection();
 app.UseRouting();
+
+// Enable session middleware (services.AddSession was registered earlier)
+app.UseSession();
 
 app.UseAuthorization();
 

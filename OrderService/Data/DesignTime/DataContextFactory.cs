@@ -20,7 +20,10 @@ namespace OrderService.Data.DesignTime
 
             var configuration = builder.Build();
 
-            var conn = configuration.GetConnectionString("DefaultConnection") ?? Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ?? string.Empty;
+            var conn = configuration.GetConnectionString("DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+                       ?? string.Empty;
 
             var options = new DbContextOptionsBuilder<OrderService.Data.DataContext>();
             options.UseNpgsql(conn, b => b.MigrationsAssembly(typeof(OrderService.Data.DataContext).Assembly.FullName));

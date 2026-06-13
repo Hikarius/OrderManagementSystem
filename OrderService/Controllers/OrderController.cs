@@ -5,6 +5,7 @@ using OrderService.Application.Queries;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace OrderService.Controllers
@@ -26,6 +27,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("/auth/login")]
+        []
         public IActionResult Login([FromBody] LoginModel model)
         {
             // WARNING: This is a demo login for local development only.

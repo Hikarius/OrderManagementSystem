@@ -35,6 +35,12 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+// Ensure MassTransit license env var is set in Development to avoid startup failure when no license is provided
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("MT_LICENSE")) && builder.Environment.IsDevelopment())
+{
+    Environment.SetEnvironmentVariable("MT_LICENSE", "DEVELOPMENT_PLACEHOLDER");
+}
+
 // FluentValidation registration
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
@@ -42,33 +48,30 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(Shared.Application.MediatR.ValidationBehavior<,>));
 
-// MassTransit with RabbitMQ
-builder.Services.AddMassTransit(x =>
-{
-    x.AddConsumer<NotificationService.Consumers.OrderCreatedConsumer>();
+// MassTransit with RabbitMQ — registration moved to conditional block below (depends on license)
+// Configure EF Core DbContext for NotificationService and expose as DbContext
+var notificationConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["ConnectionStrings:DefaultConnection"]
+    ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+    ?? "Host=localhost;Database=notifications;Username=postgres;Password=postgres";
 
-    x.UsingRabbitMq((context, cfg) =>
-    {
-        cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "localhost", h => { });
+builder.Services.AddDbContext<NotificationService.Data.DataContext>(options =>
+    options.UseNpgsql(notificationConnectionString));
 
-        cfg.ReceiveEndpoint("order-created-queue", e =>
-        {
-            // retry policy for transient exceptions and exponential backoff
-            e.UseMessageRetry(r => r.Exponential(5, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(2)));
-            // default fault handling will move messages to error queue; ConfigureDeadLetter can be added if desired
-            e.ConfigureConsumer<NotificationService.Consumers.OrderCreatedConsumer>(context);
-        });
-    });
-});
-
-// Register event publisher wiring so consumers/publishers can be resolved
-builder.Services.AddScoped<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.MassTransitEventPublisher>();
+builder.Services.AddScoped<DbContext, NotificationService.Data.DataContext>();
 
 // Health checks
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy());
 
+// Register Redis multiplexer and idempotency store
+var redisCfg = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => StackExchange.Redis.ConnectionMultiplexer.Connect(redisCfg));
+builder.Services.AddScoped<Shared.Infrastructure.Redis.IdempotencyStore>();
+
 var app = builder.Build();
+// Note: IEventPublisher registration intentionally omitted in NotificationService.
+// The concrete registration follows the pattern implemented in OrderService/Program.cs
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

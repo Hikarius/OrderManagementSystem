@@ -48,12 +48,19 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    // Fallback to environment variable if connection string is not present in config
-    connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ?? string.Empty;
+    // Fallback to environment variables used by Docker and other environments
+    // Docker Compose sets ConnectionStrings__DefaultConnection which maps to Configuration.GetConnectionString("DefaultConnection").
+    // Some environments may set DEFAULT_CONNECTION — keep it for backward compatibility.
+    connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+                       ?? string.Empty;
 }
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(DataContext).Assembly.FullName)));
+
+// Expose the concrete DataContext also as DbContext so shared EfRepository which depends on DbContext can be resolved
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<DataContext>());
 
 // Register generic repository wiring so other services can depend on IRepository<T>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
@@ -64,6 +71,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
     // Use the Redis configuration key used in docker-compose (Redis__Configuration)
     options.Configuration = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
 });
+
+// Register ConnectionMultiplexer and idempotency store for shared Redis usage
+var redisConfig = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => StackExchange.Redis.ConnectionMultiplexer.Connect(redisConfig));
+builder.Services.AddScoped<Shared.Infrastructure.Redis.IdempotencyStore>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -80,7 +92,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // Conditionally apply pending EF Core migrations on startup when MIGRATE_ON_STARTUP=true
-var migrateOnStartup = (Environment.GetEnvironmentVariable("MIGRATE_ON_STARTUP") ?? app.Configuration["MigrateOnStartup"])?.ToLower() == "true";
+var migrateOnStartup = true;
+   // (Environment.GetEnvironmentVariable("MIGRATE_ON_STARTUP") ?? app.Configuration["MigrateOnStartup"])?.ToLower() == "true";
 if (migrateOnStartup)
 {
     using var scope = app.Services.CreateScope();

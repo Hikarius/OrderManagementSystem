@@ -6,7 +6,7 @@ namespace OrderService.Data.Repositories
 {
     public class OrderRepository : EfRepository<Order>, IRepository<Order>
     {
-        public OrderRepository(DbContext dbContext) : base(dbContext)
+        public OrderRepository(OrderService.Data.DataContext dbContext) : base(dbContext)
         {
         }
     }

@@ -20,7 +20,10 @@ namespace CatalogService.Data.DesignTime
 
             var configuration = builder.Build();
 
-            var conn = configuration.GetConnectionString("DefaultConnection") ?? Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ?? string.Empty;
+            var conn = configuration.GetConnectionString("DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("DEFAULT_CONNECTION")
+                       ?? string.Empty;
 
             var options = new DbContextOptionsBuilder<CatalogService.Data.DataContext>();
             options.UseNpgsql(conn, b => b.MigrationsAssembly(typeof(CatalogService.Data.DataContext).Assembly.FullName));
