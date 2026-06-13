@@ -3,8 +3,8 @@ using Shared.Application.MediatR;
 using Shared.Application.Result;
 using OrderService.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Shared.Http;
 using Shared.Contracts.Catalog.Dtos;
+using Shared.Infrastructure.Http;
 
 
 namespace OrderService.Application.Handlers

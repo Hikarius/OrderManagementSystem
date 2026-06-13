@@ -1,7 +1,7 @@
 using Shared.Application.Result;
 using Shared.Contracts.Catalog.Dtos;
 
-namespace Shared.Http
+namespace Shared.Infrastructure.Http
 {
     public interface ICatalogServiceClient
     {

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace Shared.Http
+namespace Shared.Infrastructure.Http
 {
     public class CatalogServiceClient : ICatalogServiceClient
     {

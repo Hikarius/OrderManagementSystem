@@ -4,7 +4,8 @@ using Shared.Application.MediatR;
 using Shared.Application.Result;
 using Shared.Contracts.Catalog.Dtos;
 using Shared.Contracts.Order;
-using Shared.Http;
+using Shared.Infrastructure.Http;
+using Shared.Infrastructure.Redis;
 using static Shared.Contracts.Order.Enums;
 
 namespace OrderService.Application.Handlers
@@ -22,11 +23,12 @@ namespace OrderService.Application.Handlers
         public int Quantity { get; set; }
     }
     
-    public class AddOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, Shared.Redis.IdempotencyStore idempotencyStore) : ICommandHandler<AddOrderCommand, Result<Guid>>
+    public class AddOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, IdempotencyStore idempotencyStore, Shared.Application.Messaging.IEventPublisher eventPublisher) : ICommandHandler<AddOrderCommand, Result<Guid>>
     {
         private readonly OrderRepository _repository = repository;
         private readonly ICatalogServiceClient _catalogServiceClient = catalogServiceClient;
-        private readonly Shared.Redis.IdempotencyStore _idempotencyStore = idempotencyStore;
+        private readonly IdempotencyStore _idempotencyStore = idempotencyStore;
+        private readonly Shared.Application.Messaging.IEventPublisher _eventPublisher = eventPublisher;
 
         public async Task<Result<Guid>> Handle(AddOrderCommand request, CancellationToken cancellationToken)
         {
@@ -119,6 +121,35 @@ namespace OrderService.Application.Handlers
 
                 await _repository.AddAsync(newOrder, cancellationToken);
                 await _repository.UnitOfWork.SaveChangesAsync(cancellationToken);
+
+                // publish event (fire-and-forget)
+                try
+                {
+                    var itemsDto = newOrder.Items.Select(i => new Shared.Contracts.Order.OrderItemDto
+                    {
+                        Id = i.Id,
+                        ProductId = i.ProductId,
+                        ProductName = i.ProductName,
+                        Quantity = i.Quantity,
+                        UnitPrice = i.UnitPrice,
+                        TotalPrice = i.TotalPrice
+                    }).ToList();
+
+                    var ev = new Shared.Contracts.Messaging.OrderCreatedEvent
+                    {
+                        OrderId = newOrder.Id,
+                        CustomerEmail = newOrder.CustomerEmail,
+                        TotalPrice = newOrder.TotalPrice,
+                        Items = itemsDto,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _eventPublisher.PublishAsync(ev);
+                }
+                catch
+                {
+                    // swallow; publishing failure should not block order creation
+                }
 
                 if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
                 {

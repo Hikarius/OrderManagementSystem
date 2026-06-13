@@ -1,7 +1,7 @@
 using StackExchange.Redis;
 using System.Text.Json;
 
-namespace Shared.Redis
+namespace Shared.Infrastructure.Redis
 {
     public class IdempotencyStore
     {

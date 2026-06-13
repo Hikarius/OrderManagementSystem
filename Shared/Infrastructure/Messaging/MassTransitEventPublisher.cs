@@ -17,7 +17,7 @@ namespace Shared.Infrastructure.Messaging
 
         public async Task PublishAsync<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : class, IMessage
         {
-            await _publishEndpoint.Publish(message, cancellationToken);
+            await _publishEndpoint.Publish<TMessage>(message, cancellationToken);
         }
     }
 }

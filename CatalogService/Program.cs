@@ -1,9 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using CatalogService.Data;
 using Shared.Infrastructure.Data;
-using MediatR;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
 
 var builder = WebApplication.CreateBuilder(args);
 

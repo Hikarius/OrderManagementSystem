@@ -3,7 +3,7 @@ using Polly;
 using Polly.Extensions.Http;
 using System.Net.Http.Headers;
 
-namespace Shared.Http
+namespace Shared.Infrastructure.Http
 {
     public static class CatalogServiceClientExtensions
     {
