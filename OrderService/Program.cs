@@ -8,8 +8,16 @@ using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog JSON console
+builder.Host.UseSerilog((ctx, lc) => lc
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "OrderService")
+    .WriteTo.Console(new RenderedCompactJsonFormatter()));
 // Services are configured below.
 
 // MassTransit 8.x doesn't require license gating
@@ -102,6 +110,11 @@ var catalogBase = builder.Configuration["CatalogService:BaseAddress"]
                   ?? "http://catalogservice";
 builder.Services.AddCatalogServiceClient(catalogBase);
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<Shared.Infrastructure.Health.DbContextHealthCheck<OrderService.Data.DataContext>>("db")
+    .AddCheck<Shared.Infrastructure.Health.RabbitMqHealthCheck>("rabbitmq");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -128,6 +141,10 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 
+app.UseSerilogRequestLogging();
+// Correlation ID middleware
+app.UseMiddleware<Shared.Middleware.CorrelationIdMiddleware>();
+
 // Global exception handling middleware (Problem Details) from Shared
 app.UseMiddleware<Shared.Middleware.ExceptionHandlingMiddleware>();
 
@@ -135,5 +152,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

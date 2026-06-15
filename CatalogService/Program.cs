@@ -7,8 +7,16 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Serilog;
+using Serilog.Formatting.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog JSON console logger
+builder.Host.UseSerilog((ctx, lc) => lc
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "CatalogService")
+    .WriteTo.Console(new JsonFormatter()));
 
 // Add services to the container.
 
@@ -83,6 +91,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<CatalogService.Data.Repositories.ProductRepository>();
 builder.Services.AddScoped<CatalogService.Application.Queries.ProductQueries>();
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<Shared.Infrastructure.Health.DbContextHealthCheck<CatalogService.Data.DataContext>>("db")
+    .AddCheck<Shared.Infrastructure.Health.RabbitMqHealthCheck>("rabbitmq");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -111,6 +124,9 @@ if (migrateOnStartup)
 }
 
 app.UseHttpsRedirection();
+app.UseSerilogRequestLogging();
+// Correlation ID middleware (must be early)
+app.UseMiddleware<Shared.Middleware.CorrelationIdMiddleware>();
 // Global exception handling middleware (Problem Details) from Shared
 app.UseMiddleware<Shared.Middleware.ExceptionHandlingMiddleware>();
 
@@ -118,5 +134,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

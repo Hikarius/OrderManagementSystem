@@ -6,8 +6,16 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog JSON console
+builder.Host.UseSerilog((ctx, lc) => lc
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "NotificationService")
+    .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -68,7 +76,8 @@ builder.Services.AddScoped<DbContext, NotificationService.Data.DataContext>();
 
 // Health checks
 builder.Services.AddHealthChecks()
-    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy());
+    .AddCheck<Shared.Infrastructure.Health.DbContextHealthCheck<NotificationService.Data.DataContext>>("db")
+    .AddCheck<Shared.Infrastructure.Health.RabbitMqHealthCheck>("rabbitmq");
 
 // Register Redis multiplexer and idempotency store
 var redisCfg = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
@@ -102,6 +111,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
+
+app.UseSerilogRequestLogging();
+// Correlation ID middleware
+app.UseMiddleware<Shared.Middleware.CorrelationIdMiddleware>();
 
 // Global exception handling middleware (Problem Details) from Shared
 app.UseMiddleware<Shared.Middleware.ExceptionHandlingMiddleware>();
