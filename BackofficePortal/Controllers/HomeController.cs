@@ -151,6 +151,66 @@ namespace BackofficePortal.Controllers
             }
         }
 
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> AddProduct([FromBody] dynamic body)
+        {
+            try
+            {
+                var id = await _apiClient.PostAsync<Guid>("CatalogService", "/catalog/addproduct", body);
+                return Json(new { success = id != Guid.Empty, id });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UpdateProduct([FromBody] dynamic body)
+        {
+            try
+            {
+                var id = await _apiClient.PutAsync<Guid>("CatalogService", "/catalog/updateproduct", body);
+                return Json(new { success = id != Guid.Empty, id });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> DeleteProduct(Guid id)
+        {
+            if (id == Guid.Empty) return BadRequest(new { error = "Invalid id" });
+            try
+            {
+                var deletedId = await _apiClient.DeleteAsync<Guid>("CatalogService", $"/catalog/{id}");
+                return Json(new { success = deletedId != Guid.Empty, id = deletedId });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> GetOrderById(Guid id)
+        {
+            if (id == Guid.Empty) return BadRequest(new { error = "Invalid id" });
+            try
+            {
+                var data = await _apiClient.GetAsync<object>("OrderService", $"/order/{id}");
+                return Json(data);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
         public async Task<IActionResult> GetNotifications()
         {
             try
@@ -164,10 +224,7 @@ namespace BackofficePortal.Controllers
             }
         }
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+        // Privacy removed
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

@@ -6,14 +6,17 @@ namespace Shared.Infrastructure.Data
     {
         private readonly DbContext _dbContext;
         private readonly DbSet<T> _dbSet;
+        private readonly IUnitOfWork _unitOfWork;
 
         public EfRepository(DbContext dbContext)
         {
             _dbContext = dbContext;
             _dbSet = _dbContext.Set<T>();
+            // Ensure a single UnitOfWork instance is reused so transactions commit properly
+            _unitOfWork = new EfUnitOfWork(_dbContext);
         }
 
-        public IUnitOfWork UnitOfWork => new EfUnitOfWork(_dbContext);
+        public IUnitOfWork UnitOfWork => _unitOfWork;
 
         public DbSet<T> GetDbSet() => _dbSet;
 

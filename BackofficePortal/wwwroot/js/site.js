@@ -19,12 +19,59 @@ $(function(){
         try {
             var arr = Array.isArray(data) ? data : (data && Array.isArray(data.value) ? data.value : null);
             if(arr){
-                // Detect product vs order shape
+                // Detect product vs order vs notifications shape
                 if(arr.length && (arr[0].name !== undefined || arr[0].price !== undefined)){
-                    var html = '<table class="table table-sm table-striped"><thead><tr><th>Name</th><th>Price</th><th>Stock</th></tr></thead><tbody>';
+                    var html = '<table class="table table-sm table-striped" id="productsTable"><thead><tr><th>Id</th><th>Name</th><th>Price</th><th>Stock</th></tr></thead><tbody>';
                     arr.forEach(function(p){
-                        html += '<tr><td>'+ (p.name||'') +'</td><td>'+ (p.price||'') +'</td><td>'+ (p.stock||'') +'</td></tr>';
+                        html += '<tr data-id="'+ (p.id||'') +'"><td>'+ (p.id||'') +'</td><td>'+ (p.name||'') +'</td><td>'+ (p.price||'') +'</td><td>'+ (p.stock||'') +'</td></tr>';
                     });
+
+    // Select product row to fill form for update/delete
+    $(document).on('click', '#productsTable tbody tr', function(){
+        $('#productsTable tbody tr').removeClass('table-active');
+        $(this).addClass('table-active');
+        var id = $(this).data('id') || '';
+        $('#selectedProductId').val(id);
+        var tds = $(this).children('td');
+        $('input[name="name"]').val($(tds[1]).text());
+        $('input[name="price"]').val($(tds[2]).text());
+        $('input[name="stock"]').val($(tds[3]).text());
+    });
+
+    $(document).on('click', '#btnAddProduct', function(){
+        var body = {
+            name: $('input[name="name"]').val(),
+            description: $('input[name="description"]').val(),
+            price: parseFloat($('input[name="price"]').val()||'0'),
+            stock: parseInt($('input[name="stock"]').val()||'0',10),
+            isActive: true
+        };
+        $.ajax({ url: '/Home/AddProduct', type: 'POST', data: JSON.stringify(body), contentType: 'application/json' })
+          .done(function(res){ alert(res.success? 'Added: '+res.id : 'Failed'); $('#btnLoadProducts').trigger('click'); })
+          .fail(function(xhr){ alert('Error '+xhr.status+': '+(xhr.responseText||xhr.statusText)); });
+    });
+
+    $(document).on('click', '#btnUpdateProduct', function(){
+        var id = $('#selectedProductId').val(); if(!id){ alert('Select a product'); return; }
+        var body = {
+            id: id,
+            name: $('input[name="name"]').val(),
+            description: $('input[name="description"]').val(),
+            price: parseFloat($('input[name="price"]').val()||'0'),
+            stock: parseInt($('input[name="stock"]').val()||'0',10),
+            isActive: true
+        };
+        $.ajax({ url: '/Home/UpdateProduct', type: 'PUT', data: JSON.stringify(body), contentType: 'application/json' })
+          .done(function(res){ alert(res.success? 'Updated: '+res.id : 'Failed'); $('#btnLoadProducts').trigger('click'); })
+          .fail(function(xhr){ alert('Error '+xhr.status+': '+(xhr.responseText||xhr.statusText)); });
+    });
+
+    $(document).on('click', '#btnDeleteProduct', function(){
+        var id = $('#selectedProductId').val(); if(!id){ alert('Select a product'); return; }
+        $.ajax({ url: '/Home/DeleteProduct?id='+encodeURIComponent(id), type: 'DELETE' })
+          .done(function(res){ alert(res.success? 'Deleted: '+res.id : 'Failed'); $('#btnLoadProducts').trigger('click'); })
+          .fail(function(xhr){ alert('Error '+xhr.status+': '+(xhr.responseText||xhr.statusText)); });
+    });
 
     // Select order row
     $(document).on('click', '#ordersTable tbody tr', function(){
@@ -32,6 +79,33 @@ $(function(){
         $(this).addClass('table-active');
         var id = $(this).data('id') || '';
         $('#selectedOrderId').val(id);
+        if(id){
+            $('#orderDetail').text('Loading detail...');
+            var url = '/Home/GetOrderById?id=' + encodeURIComponent(id) + '&_ts=' + Date.now();
+            $.get(url).done(function(data){
+                try{
+                    var o = (data && data.value) ? data.value : data;
+                    if(!o){ $('#orderDetail').text('No detail'); return; }
+                    var items = Array.isArray(o.items) ? o.items : [];
+                    var html = '<div class="card card-body"><div class="row">'
+                             + '<div class="col-md-4"><strong>Customer:</strong> '+ (o.customerEmail||'') +'</div>'
+                             + '<div class="col-md-3"><strong>Total:</strong> '+ (o.totalPrice||'') +'</div>'
+                             + '<div class="col-md-3"><strong>Status:</strong> '+ (typeof o.status==='number'? ['Pending','Confirmed','Cancelled'][o.status] : (o.status||'')) +'</div>'
+                             + '</div>'
+                             + '<div class="mt-2"><strong>Items</strong>'
+                             + '<table class="table table-sm table-bordered mt-1"><thead><tr><th>Product</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead><tbody>';
+                    items.forEach(function(it){
+                        html += '<tr><td>'+ (it.productName||'') +'</td><td>'+ (it.quantity||0) +'</td><td>'+ (it.unitPrice||0) +'</td><td>'+ (it.totalPrice||0) +'</td></tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                    $('#orderDetail').html(html);
+                }catch(ex){ $('#orderDetail').text('Render error: '+ex); }
+            }).fail(function(xhr){
+                $('#orderDetail').text('Error ' + xhr.status + ' ' + (xhr.responseText||xhr.statusText));
+            });
+        } else {
+            $('#orderDetail').empty();
+        }
     });
 
     // Cancel order
@@ -56,8 +130,19 @@ $(function(){
                     $(target).html(html);
                     return;
                 }
+                // notifications: array of { orderId, message }
+                if(arr.length && (arr[0].message !== undefined) && (arr[0].orderId !== undefined)){
+                    var htmlN = '<table class="table table-sm table-striped"><thead><tr><th>Order Id</th><th>Message</th></tr></thead><tbody>';
+                    arr.forEach(function(n){
+                        htmlN += '<tr><td>'+ (n.orderId||'') +'</td><td>'+ (n.message||'') +'</td></tr>';
+                    });
+                    htmlN += '</tbody></table>';
+                    $(target).html(htmlN);
+                    return;
+                }
                 if(arr.length && (arr[0].customerEmail !== undefined || arr[0].totalPrice !== undefined)){
-                    var html2 = '<table class="table table-sm table-striped"><thead><tr><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>';
+                    var html2 = '<table class="table table-sm table-striped" id="ordersTable">'
+                              + '<thead><tr><th>Id</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>';
                     arr.forEach(function(o){
                         var total = (o.totalPrice !== undefined && o.totalPrice !== null) ? o.totalPrice : '';
                         var st = (o.status !== undefined && o.status !== null) ? o.status : '';
@@ -65,10 +150,17 @@ $(function(){
                             var map = ['Pending','Confirmed','Cancelled'];
                             st = map[st] !== undefined ? map[st] : st;
                         }
-                        html2 += '<tr><td>'+ (o.customerEmail||'') +'</td><td>'+ total +'</td><td>'+ st +'</td></tr>';
+                        var id = (o.id||'');
+                        html2 += '<tr data-id="'+ id +'">'
+                              + '<td>'+ id +'</td>'
+                              + '<td>'+ (o.customerEmail||'') +'</td>'
+                              + '<td>'+ total +'</td>'
+                              + '<td>'+ st +'</td>'
+                              + '</tr>';
                     });
                     html2 += '</tbody></table>';
                     $(target).html(html2);
+                    $('#orderActions').show();
                     return;
                 }
             }

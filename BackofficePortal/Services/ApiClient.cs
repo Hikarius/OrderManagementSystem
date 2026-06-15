@@ -42,6 +42,24 @@ namespace BackofficePortal.Services
             return await ReadAsJsonAsync<T>(res);
         }
 
+        public async Task<T?> PutAsync<T>(string clientName, string url, object body)
+        {
+            var client = _factory.CreateClient(clientName);
+            AttachJwt(client);
+            var res = await client.PutAsJsonAsync(url, body);
+            res.EnsureSuccessStatusCode();
+            return await ReadAsJsonAsync<T>(res);
+        }
+
+        public async Task<T?> DeleteAsync<T>(string clientName, string url)
+        {
+            var client = _factory.CreateClient(clientName);
+            AttachJwt(client);
+            var res = await client.DeleteAsync(url);
+            res.EnsureSuccessStatusCode();
+            return await ReadAsJsonAsync<T>(res);
+        }
+
         private static async Task<T?> ReadAsJsonAsync<T>(HttpResponseMessage res)
         {
             var json = await res.Content.ReadAsStringAsync();
