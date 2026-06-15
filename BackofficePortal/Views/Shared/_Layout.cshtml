@@ -27,6 +27,22 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+                    <ul class="navbar-nav">
+                        @if (Context.Session.GetString("jwt") != null)
+                        {
+                            <li class="nav-item">
+                                <form asp-controller="Home" asp-action="Logout" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Logout</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Home" asp-action="Login">Login</a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>

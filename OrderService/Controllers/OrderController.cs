@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 
 
 namespace OrderService.Controllers
@@ -18,12 +19,16 @@ namespace OrderService.Controllers
         private readonly ILogger<OrderController> _logger;
         private readonly IMediator _mediator;
         private readonly OrderQueries _orderQueries;
+        private readonly string _jwtKey;
+        private readonly string _jwtIssuer;
 
-        public OrderController(ILogger<OrderController> logger, IMediator mediator, OrderQueries orderQueries)
+        public OrderController(ILogger<OrderController> logger, IMediator mediator, OrderQueries orderQueries, IConfiguration configuration)
         {
             _logger = logger;
             _mediator = mediator;
             _orderQueries = orderQueries;
+            _jwtKey = configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "dev_super_secret_key_please_change_0123456789ABCDEF";
+            _jwtIssuer = configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "local";
         }
 
         [HttpPost("/auth/login")]
@@ -47,9 +52,9 @@ namespace OrderService.Controllers
                 new Claim(ClaimTypes.Role, role)
             };
 
-            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("change_this_in_production"));
+            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_jwtKey));
             var creds = new JwtSecurityToken(
-                issuer: "local",
+                issuer: _jwtIssuer,
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)

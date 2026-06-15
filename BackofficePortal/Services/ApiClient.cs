@@ -30,8 +30,7 @@ namespace BackofficePortal.Services
             AttachJwt(client);
             var res = await client.GetAsync(url);
             res.EnsureSuccessStatusCode();
-            var stream = await res.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<T>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return await ReadAsJsonAsync<T>(res);
         }
 
         public async Task<T?> PostAsync<T>(string clientName, string url, object body)
@@ -40,8 +39,30 @@ namespace BackofficePortal.Services
             AttachJwt(client);
             var res = await client.PostAsJsonAsync(url, body);
             res.EnsureSuccessStatusCode();
-            var stream = await res.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<T>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return await ReadAsJsonAsync<T>(res);
+        }
+
+        private static async Task<T?> ReadAsJsonAsync<T>(HttpResponseMessage res)
+        {
+            var json = await res.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json)) return default;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("value", out var valueEl))
+                {
+                    var valueJson = valueEl.GetRawText();
+                    return JsonSerializer.Deserialize<T>(valueJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+            }
+            catch
+            {
+                // fall back to direct deserialize
+            }
+
+            return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
     }
 }
