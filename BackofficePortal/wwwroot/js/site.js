@@ -25,6 +25,33 @@ $(function(){
                     arr.forEach(function(p){
                         html += '<tr><td>'+ (p.name||'') +'</td><td>'+ (p.price||'') +'</td><td>'+ (p.stock||'') +'</td></tr>';
                     });
+
+    // Select order row
+    $(document).on('click', '#ordersTable tbody tr', function(){
+        $('#ordersTable tbody tr').removeClass('table-active');
+        $(this).addClass('table-active');
+        var id = $(this).data('id') || '';
+        $('#selectedOrderId').val(id);
+    });
+
+    // Cancel order
+    $(document).on('click', '#btnCancelOrder', function(){
+        var id = $('#selectedOrderId').val();
+        if(!id){ alert('Önce bir sipariş seçin.'); return; }
+        $('#cancelResult').text('Cancelling...');
+        $.ajax({
+            url: '/Home/CancelOrder',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(id)
+        }).done(function(){
+            $('#cancelResult').text('Cancelled');
+            // refresh orders
+            $('#btnLoadOrders').trigger('click');
+        }).fail(function(xhr){
+            $('#cancelResult').text('Error ' + xhr.status + ' ' + (xhr.responseText||xhr.statusText));
+        });
+    });
                     html += '</tbody></table>';
                     $(target).html(html);
                     return;
@@ -32,7 +59,13 @@ $(function(){
                 if(arr.length && (arr[0].customerEmail !== undefined || arr[0].totalPrice !== undefined)){
                     var html2 = '<table class="table table-sm table-striped"><thead><tr><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>';
                     arr.forEach(function(o){
-                        html2 += '<tr><td>'+ (o.customerEmail||'') +'</td><td>'+ (o.totalPrice||'') +'</td><td>'+ (o.status||'') +'</td></tr>';
+                        var total = (o.totalPrice !== undefined && o.totalPrice !== null) ? o.totalPrice : '';
+                        var st = (o.status !== undefined && o.status !== null) ? o.status : '';
+                        if (typeof st === 'number') {
+                            var map = ['Pending','Confirmed','Cancelled'];
+                            st = map[st] !== undefined ? map[st] : st;
+                        }
+                        html2 += '<tr><td>'+ (o.customerEmail||'') +'</td><td>'+ total +'</td><td>'+ st +'</td></tr>';
                     });
                     html2 += '</tbody></table>';
                     $(target).html(html2);

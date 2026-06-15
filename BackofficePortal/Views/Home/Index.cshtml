@@ -25,6 +25,15 @@
         </p>
         <div id="ordersContent"></div>
 
+        <div class="mt-3" id="orderActions" style="display:none;">
+            <div class="input-group input-group-sm mb-2" style="max-width:520px;margin:0 auto;">
+                <span class="input-group-text">Selected Order Id</span>
+                <input type="text" class="form-control" id="selectedOrderId" readonly />
+                <button id="btnCancelOrder" class="btn btn-outline-danger" type="button">Cancel</button>
+            </div>
+            <div id="cancelResult" class="small text-muted"></div>
+        </div>
+
         <hr />
         <h5>Create Order</h5>
         <form id="orderForm">

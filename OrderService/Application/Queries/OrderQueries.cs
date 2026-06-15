@@ -62,18 +62,6 @@ namespace OrderService.Application.Queries
                 query = query.OrderBy(o => o.Id);
             }
 
-            // cache list using version token
-            var version = await _cache.GetStringAsync("orders:list:version") ?? "1";
-            var filterKey = filter is null ? "default" : $"p{filter.PageNumber}:s{filter.PageSize}:status{filter.Status}:sort{filter.SortBy}:order{filter.SortOrder}";
-            var listCacheKey = $"orders:list:{version}:{filterKey}";
-
-            var cached = await _cache.GetAsync(listCacheKey);
-            if (cached is not null)
-            {
-                var dtos = JsonSerializer.Deserialize<List<OrderDto>>(Encoding.UTF8.GetString(cached), _jsonOptions);
-                return new Result<List<OrderDto>> { IsSuccess = true, ErrorMessage = string.Empty, Value = dtos ?? new List<OrderDto>() };
-            }
-
             var orders = await query.Select(o => new OrderDto
             {
                 Id = o.Id,
@@ -94,9 +82,6 @@ namespace OrderService.Application.Queries
                     TotalPrice = it.TotalPrice
                 }).ToList()
             }).ToListAsync();
-
-            var payload = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(orders, _jsonOptions));
-            await _cache.SetAsync(listCacheKey, payload, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2) });
 
             return new Result<List<OrderDto>> { IsSuccess = true, ErrorMessage = string.Empty, Value = orders };
         }

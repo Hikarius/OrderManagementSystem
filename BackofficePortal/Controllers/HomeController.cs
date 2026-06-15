@@ -93,6 +93,22 @@ namespace BackofficePortal.Controllers
 
         [HttpPost]
         [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> CancelOrder([FromBody] Guid id)
+        {
+            if (id == Guid.Empty) return BadRequest(new { error = "Invalid id" });
+            try
+            {
+                var res = await _apiClient.PostAsync<object>("OrderService", "/order/cancel", new { Id = id });
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> AddOrder([FromBody] BackofficePortal.Models.AddOrderRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.CustomerEmail) || request.Items == null || request.Items.Count == 0)

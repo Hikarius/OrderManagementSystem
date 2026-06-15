@@ -50,6 +50,7 @@ services:
       - Redis__Configuration=redis:6379
       - JWT_KEY=dev_super_secret_key_please_change_0123456789ABCDEF
       - JWT_ISSUER=local
+      - CATALOGSERVICE_BASEADDRESS=http://catalogservice:8080
     restart: unless-stopped
 
   catalogservice:
@@ -92,6 +93,7 @@ services:
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
       - Redis__Configuration=redis:6379
+      # MassTransit 8.x: no license env required
     restart: unless-stopped
 
   rabbitmq:

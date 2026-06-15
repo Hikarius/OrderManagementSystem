@@ -1,4 +1,5 @@
 using MassTransit;
+using NotificationService.Consumers;
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -35,11 +36,7 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
-// Ensure MassTransit license env var is set in Development to avoid startup failure when no license is provided
-if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("MT_LICENSE")) && builder.Environment.IsDevelopment())
-{
-    Environment.SetEnvironmentVariable("MT_LICENSE", "DEVELOPMENT_PLACEHOLDER");
-}
+// MassTransit 8.x doesn't require license
 
 // FluentValidation registration
 builder.Services.AddFluentValidationAutoValidation();
@@ -48,7 +45,16 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(Shared.Application.MediatR.ValidationBehavior<,>));
 
-// MassTransit with RabbitMQ — registration moved to conditional block below (depends on license)
+// MassTransit with RabbitMQ — register bus & consumer
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<OrderCreatedConsumer>();
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "rabbitmq");
+        cfg.ConfigureEndpoints(context);
+    });
+});
 // Configure EF Core DbContext for NotificationService and expose as DbContext
 var notificationConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["ConnectionStrings:DefaultConnection"]

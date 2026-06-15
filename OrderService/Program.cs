@@ -12,9 +12,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 // Services are configured below.
 
-// Read MassTransit license env vars (if provided)
-var mtLicense = builder.Configuration["MT_LICENSE"] ?? Environment.GetEnvironmentVariable("MT_LICENSE");
-var mtLicensePath = builder.Configuration["MT_LICENSE_PATH"] ?? Environment.GetEnvironmentVariable("MT_LICENSE_PATH");
+// MassTransit 8.x doesn't require license gating
 
 // Add services to the container.
 
@@ -54,24 +52,14 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
 // MassTransit (RabbitMQ) for publishing events - only register if a license or license path is provided
-if (!string.IsNullOrWhiteSpace(mtLicense) || !string.IsNullOrWhiteSpace(mtLicensePath))
+builder.Services.AddMassTransit(x =>
 {
-    builder.Services.AddMassTransit(x =>
+    x.UsingRabbitMq((context, cfg) =>
     {
-        x.UsingRabbitMq((context, cfg) =>
-        {
-            cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "localhost", h => { });
-        });
+        cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "rabbitmq", h => { });
     });
-
-    // register event publisher implementation that uses MassTransit
-    builder.Services.AddScoped<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.MassTransitEventPublisher>();
-}
-else
-{
-    // No license provided — register a no-op event publisher for development/testing so handlers can run without a bus
-    builder.Services.AddSingleton<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.NoOpEventPublisher>();
-}
+});
+builder.Services.AddScoped<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.MassTransitEventPublisher>();
 // MediatR registration (comment added to ensure patch applies cleanly)
 
 // Configure EF Core with Npgsql (PostgreSQL)

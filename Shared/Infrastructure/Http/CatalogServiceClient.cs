@@ -11,6 +11,12 @@ namespace Shared.Infrastructure.Http
         private readonly HttpClient _http;
         private readonly IDistributedCache? _cache;
         private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        private class UpstreamResult<T>
+        {
+            public bool IsSuccess { get; set; }
+            public string? ErrorMessage { get; set; }
+            public T? Value { get; set; }
+        }
 
         public CatalogServiceClient(HttpClient http, IDistributedCache? cache = null)
         {
@@ -37,7 +43,25 @@ namespace Shared.Infrastructure.Http
                 return new Result<ProductDto> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = null };
 
             var content = await resp.Content.ReadAsStringAsync();
-            var dto = JsonSerializer.Deserialize<ProductDto>(content, _jsonOptions);
+            // Try Result envelope first
+            ProductDto? dto = null;
+            try
+            {
+                var wrapped = JsonSerializer.Deserialize<UpstreamResult<ProductDto>>(content, _jsonOptions);
+                if (wrapped is not null)
+                {
+                    if (wrapped.IsSuccess && wrapped.Value is not null)
+                    {
+                        dto = wrapped.Value;
+                    }
+                    else if (!wrapped.IsSuccess)
+                    {
+                        return new Result<ProductDto> { IsSuccess = false, ErrorMessage = wrapped.ErrorMessage ?? "Upstream failure", Value = null };
+                    }
+                }
+            }
+            catch { }
+            dto ??= JsonSerializer.Deserialize<ProductDto>(content, _jsonOptions);
 
             if (dto is not null && _cache is not null)
             {
@@ -60,8 +84,20 @@ namespace Shared.Infrastructure.Http
                 return new Result<List<ProductDto>> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = null };
 
             var content = await resp.Content.ReadAsStringAsync();
-            var dtos = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
+            // Try unwrap Result envelope
+            try
+            {
+                var wrapped = JsonSerializer.Deserialize<UpstreamResult<List<ProductDto>>>(content, _jsonOptions);
+                if (wrapped is not null)
+                {
+                    if (wrapped.IsSuccess && wrapped.Value is not null)
+                        return new Result<List<ProductDto>> { IsSuccess = true, ErrorMessage = string.Empty, Value = wrapped.Value };
+                    return new Result<List<ProductDto>> { IsSuccess = false, ErrorMessage = wrapped?.ErrorMessage ?? "Upstream failure", Value = null };
+                }
+            }
+            catch { }
 
+            var dtos = JsonSerializer.Deserialize<List<ProductDto>>(content, _jsonOptions);
             return new Result<List<ProductDto>> { IsSuccess = dtos is not null, ErrorMessage = dtos is null ? "Deserialization failed" : string.Empty, Value = dtos };
         }
 
@@ -73,6 +109,18 @@ namespace Shared.Infrastructure.Http
             var resp = await _http.PostAsync($"catalog/decrease", new StringContent(payload, Encoding.UTF8, "application/json"));
             if (!resp.IsSuccessStatusCode)
                 return new Result<bool> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = false };
+
+            var content = await resp.Content.ReadAsStringAsync();
+            try
+            {
+                var wrapped = JsonSerializer.Deserialize<UpstreamResult<bool>>(content, _jsonOptions);
+                if (wrapped is not null)
+                {
+                    if (!wrapped.IsSuccess || wrapped.Value == false)
+                        return new Result<bool> { IsSuccess = false, ErrorMessage = wrapped.ErrorMessage ?? "Stock decrease failed", Value = false };
+                }
+            }
+            catch { }
 
             // Invalidate cache for these products on success
             if (_cache is not null)
@@ -93,9 +141,20 @@ namespace Shared.Infrastructure.Http
 
             var payload = JsonSerializer.Serialize(new { Items = items }, _jsonOptions);
             var resp = await _http.PostAsync($"catalog/increase", new StringContent(payload, Encoding.UTF8, "application/json"));
-            // No-op edit: record last edit timestamp
             if (!resp.IsSuccessStatusCode)
                 return new Result<bool> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = false };
+
+            var content = await resp.Content.ReadAsStringAsync();
+            try
+            {
+                var wrapped = JsonSerializer.Deserialize<UpstreamResult<bool>>(content, _jsonOptions);
+                if (wrapped is not null)
+                {
+                    if (!wrapped.IsSuccess || wrapped.Value == false)
+                        return new Result<bool> { IsSuccess = false, ErrorMessage = wrapped.ErrorMessage ?? "Stock increase failed", Value = false };
+                }
+            }
+            catch { }
 
             // Invalidate cache for these products on success
             if (_cache is not null)
