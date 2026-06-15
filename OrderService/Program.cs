@@ -13,6 +13,9 @@ using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var isRunningInTest = (builder.Configuration["DOTNET_RUNNING_IN_TEST"] == "1")
+    || (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_TEST") == "1");
+
 // Serilog JSON console
 builder.Host.UseSerilog((ctx, lc) => lc
     .Enrich.FromLogContext()
@@ -59,18 +62,27 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
-// MassTransit (RabbitMQ) for publishing events - only register if a license or license path is provided
-builder.Services.AddMassTransit(x =>
+// Messaging configuration
+if (!isRunningInTest)
 {
-    x.UsingRabbitMq((context, cfg) =>
+    // MassTransit (RabbitMQ) for publishing events in non-test environments
+    builder.Services.AddMassTransit(x =>
     {
-        cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "rabbitmq", h => { });
+        x.UsingRabbitMq((context, cfg) =>
+        {
+            cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "rabbitmq", h => { });
+        });
     });
-});
-builder.Services.AddScoped<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.MassTransitEventPublisher>();
+    builder.Services.AddScoped<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.MassTransitEventPublisher>();
+}
+else
+{
+    // In tests, avoid spinning up RabbitMQ and use NoOp publisher
+    builder.Services.AddScoped<Shared.Application.Messaging.IEventPublisher, Shared.Infrastructure.Messaging.NoOpEventPublisher>();
+}
 // MediatR registration (comment added to ensure patch applies cleanly)
 
-// Configure EF Core with Npgsql (PostgreSQL)
+// Configure EF Core
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -80,26 +92,44 @@ if (string.IsNullOrWhiteSpace(connectionString))
                        ?? string.Empty;
 }
 
-builder.Services.AddDbContext<OrderService.Data.DataContext>(options =>
-    options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(OrderService.Data.DataContext).Assembly.FullName)));
+if (isRunningInTest)
+{
+    builder.Services.AddDbContext<OrderService.Data.DataContext>(options =>
+        options.UseInMemoryDatabase("OrderServiceTestDb"));
+}
+else
+{
+    builder.Services.AddDbContext<OrderService.Data.DataContext>(options =>
+        options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(OrderService.Data.DataContext).Assembly.FullName)));
+}
 
 // Register concrete DataContext as DbContext for shared repository DI
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<OrderService.Data.DataContext>());
 
 builder.Services.AddScoped(typeof(Shared.Infrastructure.Data.IRepository<>), typeof(Shared.Infrastructure.Data.EfRepository<>));
 
-// Redis cache
-builder.Services.AddStackExchangeRedisCache(options =>
+if (!isRunningInTest)
 {
-    options.Configuration = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
-});
+    // Redis cache (production/dev)
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
+    });
 
-// Register ConnectionMultiplexer for direct Redis usage (IdempotencyStore)
-var redisConfiguration = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConfiguration));
+    // Register ConnectionMultiplexer for direct Redis usage (IdempotencyStore)
+    var redisConfiguration = builder.Configuration["Redis:Configuration"] ?? Environment.GetEnvironmentVariable("REDIS_CONFIGURATION") ?? "localhost:6379";
+    builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConfiguration));
 
-// Register idempotency store used by handlers
-builder.Services.AddScoped<Shared.Infrastructure.Redis.IdempotencyStore>();
+    // Register idempotency store used by handlers
+    builder.Services.AddScoped<Shared.Infrastructure.Redis.IIdempotencyStore, Shared.Infrastructure.Redis.IdempotencyStore>();
+}
+else
+{
+    // Use in-memory distributed cache in tests and a non-throwing multiplexer
+    builder.Services.AddDistributedMemoryCache();
+    // Provide IIdempotencyStore via simple in-memory implementation through DI in tests; actual implementation is overridden in test factory
+    builder.Services.AddScoped<Shared.Infrastructure.Redis.IIdempotencyStore, Shared.Infrastructure.Redis.IdempotencyStore>();
+}
 
 builder.Services.AddScoped<OrderService.Data.Repositories.OrderRepository>();
 builder.Services.AddScoped<OrderService.Application.Queries.OrderQueries>();
@@ -129,7 +159,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<OrderService.Data.DataContext>();
-        db.Database.Migrate();
+        if (db.Database.IsRelational()) db.Database.Migrate();
     }
     catch (Exception ex)
     {
@@ -155,3 +185,5 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program { }

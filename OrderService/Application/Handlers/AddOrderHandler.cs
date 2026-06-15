@@ -23,11 +23,11 @@ namespace OrderService.Application.Handlers
         public int Quantity { get; set; }
     }
     
-    public class AddOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, IdempotencyStore idempotencyStore, Shared.Application.Messaging.IEventPublisher eventPublisher) : ICommandHandler<AddOrderCommand, Result<Guid>>
+    public class AddOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, IIdempotencyStore idempotencyStore, Shared.Application.Messaging.IEventPublisher eventPublisher) : ICommandHandler<AddOrderCommand, Result<Guid>>
     {
         private readonly OrderRepository _repository = repository;
         private readonly ICatalogServiceClient _catalogServiceClient = catalogServiceClient;
-        private readonly IdempotencyStore _idempotencyStore = idempotencyStore;
+        private readonly IIdempotencyStore _idempotencyStore = idempotencyStore;
         private readonly Shared.Application.Messaging.IEventPublisher _eventPublisher = eventPublisher;
 
         public async Task<Result<Guid>> Handle(AddOrderCommand request, CancellationToken cancellationToken)

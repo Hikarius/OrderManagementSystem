@@ -14,11 +14,11 @@ namespace OrderService.Application.Handlers
         public Guid Id { get; set; }
     }
 
-    public class CancelOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, Shared.Infrastructure.Redis.IdempotencyStore idempotencyStore) : ICommandHandler<CancelOrderCommand, Result>
+    public class CancelOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, Shared.Infrastructure.Redis.IIdempotencyStore idempotencyStore) : ICommandHandler<CancelOrderCommand, Result>
     {
         private readonly OrderRepository _repository = repository;
         private readonly ICatalogServiceClient _catalogServiceClient = catalogServiceClient;
-        private readonly Shared.Infrastructure.Redis.IdempotencyStore _idempotencyStore = idempotencyStore;
+        private readonly Shared.Infrastructure.Redis.IIdempotencyStore _idempotencyStore = idempotencyStore;
 
         public async Task<Result> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
         {

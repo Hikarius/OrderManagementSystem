@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Shared.Infrastructure.Redis
 {
-    public class IdempotencyStore
+    public class IdempotencyStore : IIdempotencyStore
     {
         private readonly IDatabase _db;
 
