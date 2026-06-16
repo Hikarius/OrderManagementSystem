@@ -65,17 +65,17 @@ end
   - Ürün CRUD işlemleri.
   - Sipariş işlemleri (oluşturma, listeleme, detay, iptal).
   - Bildirimleri listeleme.
-  - JWT tabanlı kimlik doğrulama ve rol bazlı yetkilendirme (Admin, Operator).
+  - JWT tabanlı kimlik doğrulama ve rol bazlı yetkilendirme (admin, operator).
   - Servis API'leri ile HttpClientFactory, typed client ve Polly kullanarak etkileşim.
 
 ## Kullanılan Teknolojiler ve Seçim Gerekçeleri
 
 - **.NET 9**: Modern, performanslı ve platformlar arası geliştirme imkanı sunan güncel .NET sürümü.
-- **ASP.NET Core Web API / Razor Pages**: Servisler için RESTful API'ler ve Backoffice Portal için modern web arayüzü geliştirme çatısı.
+- **ASP.NET Core Web API **: Servisler için RESTful API'ler ve Backoffice Portal için MVC ile modern web arayüzü geliştirme çatısı.
 - **Entity Framework Core**: Veritabanı erişim katmanı için ORM (Object-Relational Mapper).
 - **PostgreSQL**: Güvenilir, açık kaynaklı ve güçlü bir ilişkisel veritabanı yönetim sistemi.
 - **RabbitMQ (MassTransit)**: Servisler arası asenkron iletişimi sağlamak için mesaj kuyruğu sistemi.
-- **Redis**: Catalog Service'te ürün listeleme verilerini cache'lemek için hızlı anahtar-değer deposu.
+- **Redis**: Altyapı gereksinimleri ve veri cachelemede kullanılan key-value NoSQL.
 - **Docker / Docker Compose**: Uygulama ve bağımlılıklarının (veritabanı, mesaj kuyruğu) konteynerize edilerek kolayca çalıştırılmasını sağlar.
 - **xUnit**: Birim ve entegrasyon testleri için tercih edilen test framework'ü.
 - **Serilog**: Yapılandırılmış (structured) loglama için esnek ve güçlü bir kütüphane.
@@ -86,8 +86,7 @@ end
 
 ## Adresler
 
-- **Backoffice Portal**: `http://localhost:7000` (Varsayılan port, docker-compose.yml'den kontrol edilebilir)
-- **RabbitMQ Management UI**: `http://localhost:15672` (Kullanıcı adı/şifre: guest/guest)
+- **Backoffice Portal**: `http://localhost:5000` (Varsayılan port, docker-compose.yml'den kontrol edilebilir)
 
 ## Örnek Kullanım Akışı (Curl ile Ürün Ekleme ve Listeleme)
 
@@ -115,9 +114,9 @@ curl -X GET "http://localhost:5001/api/v1/products?page=1&pageSize=10&minPrice=1
 - **JWT Authentication**: Backoffice Portal için güvenli ve ölçeklenebilir bir kimlik doğrulama çözümü olarak JWT kullanılmıştır.
 - **Structured Logging (Serilog)**: Uygulama loglarının makine tarafından okunabilir ve sorgulanabilir olması için JSON formatında ve yapılandırılmış olarak kaydedilmesi tercih edilmiştir.
 
-## Eksik bırakılan noktalar
+## Geliştirilebilir alanlar
 
-- Bazı gereksinimler tamamlanamadı. Kısa süre içerisinde geliştirmelere devam edilecek.
-- .Net9 ile default swagger desteği kaldırıldı. Bu sebeple manuel olarak eklenecek. Swagger üzerinden API'lerin test edilmesi sağlanacak.
-- Postman collection hazırlanacak ve paylaşılacak.
-- API tasarımı ile ilgili düzeltmeler yapılacak.
+- **Kullanıcı Yönetimi**: Kullanıcı kayıt, şifre sıfırlama ve rol yönetimi gibi özellikler eklenebilir. Ayrı bir mikroservis olarak User Service geliştirilebilir.
+- **Gözleme ve Telemetri**: Çeşitli araçlarla uygulama performansını izlemek ve analiz etmek için gözleme entegrasyonu yapılabilir.
+- **Test Kapsamının Artırılması**: Mevcut birim ve entegrasyon testlerine ek olarak, uçtan uca (end-to-end) testler eklenebilir.
+
