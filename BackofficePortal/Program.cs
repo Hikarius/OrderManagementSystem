@@ -1,10 +1,9 @@
-
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.RateLimiting;
 using StackExchange.Redis;
-using Microsoft.AspNetCore.DataProtection.StackExchangeRedis;
+using System.Threading.RateLimiting;
+using System.Security.Claims;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 // Ensure data protection keys are persisted so antiforgery tokens survive app restarts
@@ -24,12 +23,43 @@ builder.Services.AddSession(options =>
 });
 builder.Services.AddHttpContextAccessor();
 
-// Add antiforgery services
 builder.Services.AddAntiforgery(options =>
 {
     // In containers/dev we often run HTTP only; ensure cookie is sent over HTTP
     options.Cookie.SecurePolicy = CookieSecurePolicy.None;
     // options.HeaderName = "X-CSRF-TOKEN"; // Uncomment and configure if you use a custom header
+});
+
+// Rate limiting (global): 100 requests/min per authenticated user or remote IP for anonymous
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        string key;
+        if (context.User?.Identity?.IsAuthenticated == true)
+        {
+            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? context.User.Identity?.Name
+                         ?? "unknown";
+            key = $"user:{userId}";
+        }
+        else
+        {
+            var ip = context.Connection.RemoteIpAddress?.ToString()
+                     ?? context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                     ?? "unknown";
+            key = $"ip:{ip}";
+        }
+
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
 });
 
 // Configure Data Protection: prefer Redis for key persistence, fallback to file system
@@ -59,10 +89,6 @@ else
     dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysDirectoryPath));
 }
 
-
-// Persist data protection keys to Redis so multiple instances can share the key ring
-// Redis connection string can be provided via configuration key: "DataProtection:Redis" or "ServiceUrls:Redis"
-//var redisConnection = builder.Configuration["DataProtection:Redis"] ?? builder.Configuration["ServiceUrls:Redis"] ?? "localhost:6379";
 // Register ConnectionMultiplexer for DI
 builder.Services.AddHttpClient("OrderService", client =>
 {
@@ -102,6 +128,7 @@ if (urls.Contains("https://", StringComparison.OrdinalIgnoreCase))
     app.UseHttpsRedirection();
 }
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAntiforgery(); // This should typically come after UseRouting and before UseAuthorization
 
 // Enable session middleware (services.AddSession was registered earlier)
