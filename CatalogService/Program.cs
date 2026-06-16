@@ -88,8 +88,6 @@ var redisConfig = builder.Configuration["Redis:Configuration"] ?? Environment.Ge
 builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => StackExchange.Redis.ConnectionMultiplexer.Connect(redisConfig));
 builder.Services.AddScoped<Shared.Infrastructure.Redis.IdempotencyStore>();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<CatalogService.Data.Repositories.ProductRepository>();
 builder.Services.AddScoped<CatalogService.Application.Queries.ProductQueries>();
@@ -104,7 +102,6 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger(); // Enables Swagger UI
     app.UseSwaggerUI(); // Configures Swagger UI
 }

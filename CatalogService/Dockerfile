@@ -35,6 +35,13 @@ RUN dotnet publish "./CatalogService.csproj" -c $BUILD_CONFIGURATION -o /app/pub
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
+USER root
+ARG APP_UID=10001
+ARG APP_GID=10001
+RUN groupadd --system --gid $APP_GID appgroup \
+	&& useradd --system --uid $APP_UID --gid $APP_GID --home-dir /nonexistent --shell /usr/sbin/nologin appuser
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN chown -R appuser:appgroup /app
+USER appuser:appgroup
 ENTRYPOINT ["dotnet", "CatalogService.dll"]
