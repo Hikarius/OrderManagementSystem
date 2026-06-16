@@ -22,6 +22,9 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddEndpointsApiExplorer(); // Required for OpenAPI/Swagger
+builder.Services.AddSwaggerGen(); // Adds Swagger generation services
+
 // JWT auth simple
 var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "change_this_in_production";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "local";
@@ -92,6 +95,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger(); // Enables Swagger UI
+    app.UseSwaggerUI(); // Configures Swagger UI
 }
 
 // Apply pending EF Core migrations automatically on startup

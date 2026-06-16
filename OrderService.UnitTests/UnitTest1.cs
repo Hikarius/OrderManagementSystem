@@ -91,7 +91,7 @@ namespace OrderService.UnitTests
                 ]
             };
 
-            var resp = await client.PostAsJsonAsync("/Order/AddOrder", cmd);
+            var resp = await client.PostAsJsonAsync("/api/v1/orders", cmd);
             resp.EnsureSuccessStatusCode();
             var result = await resp.Content.ReadFromJsonAsync<Result<Guid>>();
 
@@ -100,7 +100,7 @@ namespace OrderService.UnitTests
             result.Value.Should().NotBe(Guid.Empty);
 
             // Fetch back via API to ensure it is persisted and query works
-            var detailResp = await client.GetAsync($"/Order/{result.Value}");
+            var detailResp = await client.GetAsync($"/api/v1/orders/{result.Value}");
             detailResp.EnsureSuccessStatusCode();
             var orderResult = await detailResp.Content.ReadFromJsonAsync<Result<Shared.Contracts.Order.OrderDto>>();
             orderResult.Should().NotBeNull();
@@ -126,14 +126,14 @@ namespace OrderService.UnitTests
                 ]
             };
 
-            var resp1 = await client.PostAsJsonAsync("/Order/AddOrder", cmd);
+            var resp1 = await client.PostAsJsonAsync("/api/v1/orders", cmd);
             resp1.EnsureSuccessStatusCode();
             var r1 = await resp1.Content.ReadFromJsonAsync<Result<Guid>>();
             r1!.IsSuccess.Should().BeTrue();
             r1.Value.Should().NotBe(Guid.Empty);
 
             // second call with same key should NOT create a new order, but return same result
-            var resp2 = await client.PostAsJsonAsync("/Order/AddOrder", cmd);
+            var resp2 = await client.PostAsJsonAsync("/api/v1/orders", cmd);
             resp2.EnsureSuccessStatusCode();
             var r2 = await resp2.Content.ReadFromJsonAsync<Result<Guid>>();
             r2!.IsSuccess.Should().BeTrue();

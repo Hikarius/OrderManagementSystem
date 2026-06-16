@@ -52,10 +52,10 @@ namespace BackofficePortal.Controllers
                 return View();
             }
 
-            // call auth endpoint on OrderService for demo (endpoint expected: /auth/login)
+            // call auth endpoint on OrderService for demo (endpoint: /api/v1/auth/login)
             try
             {
-                var result = await _apiClient.PostAsync<Dictionary<string,string>>("OrderService", "/auth/login", new { Username = username, Password = password });
+                var result = await _apiClient.PostAsync<Dictionary<string,string>>("OrderService", "/api/v1/auth/login", new { Username = username, Password = password });
                 if (result != null && result.TryGetValue("token", out var token))
                 {
                     HttpContext.Session.SetString("jwt", token);
@@ -82,7 +82,7 @@ namespace BackofficePortal.Controllers
         {
             try
             {
-                var data = await _apiClient.GetAsync<object[]>("OrderService", "/order/list");
+                var data = await _apiClient.GetAsync<object[]>("OrderService", "/api/v1/orders");
                 return Json(data);
             }
             catch (Exception ex)
@@ -98,7 +98,7 @@ namespace BackofficePortal.Controllers
             if (id == Guid.Empty) return BadRequest(new { error = "Invalid id" });
             try
             {
-                var res = await _apiClient.PostAsync<object>("OrderService", "/order/cancel", new { Id = id });
+                var res = await _apiClient.PostAsync<object>("OrderService", "/api/v1/orders/cancel", new { Id = id });
                 return Json(new { success = true });
             }
             catch (Exception ex)
@@ -126,7 +126,7 @@ namespace BackofficePortal.Controllers
                     IdempotencyKey = request.IdempotencyKey ?? Guid.NewGuid().ToString()
                 };
 
-                var orderId = await _apiClient.PostAsync<Guid>("OrderService", "/order/addorder", payload);
+                var orderId = await _apiClient.PostAsync<Guid>("OrderService", "/api/v1/orders", payload);
                 if (orderId == Guid.Empty)
                     return BadRequest(new { error = "Failed to create order" });
 
@@ -142,7 +142,7 @@ namespace BackofficePortal.Controllers
         {
             try
             {
-                var data = await _apiClient.GetAsync<object[]>("CatalogService", "/catalog");
+                var data = await _apiClient.GetAsync<object[]>("CatalogService", "/api/v1/products");
                 return Json(data);
             }
             catch (Exception ex)
@@ -157,7 +157,7 @@ namespace BackofficePortal.Controllers
         {
             try
             {
-                var id = await _apiClient.PostAsync<Guid>("CatalogService", "/catalog/addproduct", body);
+                var id = await _apiClient.PostAsync<Guid>("CatalogService", "/api/v1/products", body);
                 return Json(new { success = id != Guid.Empty, id });
             }
             catch (Exception ex)
@@ -172,7 +172,7 @@ namespace BackofficePortal.Controllers
         {
             try
             {
-                var id = await _apiClient.PutAsync<Guid>("CatalogService", "/catalog/updateproduct", body);
+                var id = await _apiClient.PutAsync<Guid>("CatalogService", "/api/v1/products", body);
                 return Json(new { success = id != Guid.Empty, id });
             }
             catch (Exception ex)
@@ -188,7 +188,7 @@ namespace BackofficePortal.Controllers
             if (id == Guid.Empty) return BadRequest(new { error = "Invalid id" });
             try
             {
-                var deletedId = await _apiClient.DeleteAsync<Guid>("CatalogService", $"/catalog/{id}");
+                var deletedId = await _apiClient.DeleteAsync<Guid>("CatalogService", $"/api/v1/products/{id}");
                 return Json(new { success = deletedId != Guid.Empty, id = deletedId });
             }
             catch (Exception ex)
@@ -202,7 +202,7 @@ namespace BackofficePortal.Controllers
             if (id == Guid.Empty) return BadRequest(new { error = "Invalid id" });
             try
             {
-                var data = await _apiClient.GetAsync<object>("OrderService", $"/order/{id}");
+                var data = await _apiClient.GetAsync<object>("OrderService", $"/api/v1/orders/{id}");
                 return Json(data);
             }
             catch (Exception ex)
@@ -215,7 +215,7 @@ namespace BackofficePortal.Controllers
         {
             try
             {
-                var data = await _apiClient.GetAsync<object[]>("NotificationService", "/notification");
+                var data = await _apiClient.GetAsync<object[]>("NotificationService", "/api/v1/notifications");
                 return Json(data);
             }
             catch (Exception ex)

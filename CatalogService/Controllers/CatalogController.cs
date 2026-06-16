@@ -8,15 +8,21 @@ using IMediator = MediatR.IMediator;
 
 namespace CatalogService.Controllers
 {
+    /// <summary>
+    /// Product catalog endpoints.
+    /// </summary>
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/v1/products")]
     public class CatalogController(ILogger<CatalogController> logger, IMediator mediator, Application.Queries.ProductQueries productQueries) : ControllerBase
     {
         private readonly ILogger<CatalogController> _logger = logger;
         private readonly IMediator _mediator = mediator;
         private readonly ProductQueries _productQueries = productQueries;
 
-        [HttpPost("AddProduct")]
+        /// <summary>
+        /// Creates a new product.
+        /// </summary>
+        [HttpPost]
         public async Task<IActionResult> AddProduct([FromBody] AddProductCommand command, CancellationToken cancellationToken = default)
         {
             if (command is null)
@@ -26,7 +32,10 @@ namespace CatalogService.Controllers
             return Ok(result);
         }
 
-        [HttpPut("UpdateProduct")]
+        /// <summary>
+        /// Updates an existing product.
+        /// </summary>
+        [HttpPut]
         public async Task<IActionResult> UpdateProduct([FromBody] UpdateProductCommand command, CancellationToken cancellationToken = default)
         {
             if (command is null)
@@ -36,6 +45,9 @@ namespace CatalogService.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Deletes a product by id.
+        /// </summary>
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteProduct([FromRoute] Guid id, CancellationToken cancellationToken = default)
@@ -48,6 +60,9 @@ namespace CatalogService.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Gets a product by id.
+        /// </summary>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetProductById([FromRoute] Guid id, CancellationToken cancellationToken = default)
         {
@@ -58,14 +73,28 @@ namespace CatalogService.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Lists products with pagination.
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetProducts([FromQuery] ProductQueries.GetProductsFilter? filter)
         {
-            var result = await _productQueries.GetProducts(filter);
-            return Ok(result);
+            var listResult = await _productQueries.GetProducts(filter);
+            var total = await _productQueries.GetProductsTotalCount(filter);
+            var page = Math.Max(filter?.PageNumber ?? 1, 1);
+            var size = filter?.PageSize ?? (listResult.Value?.Count ?? 0);
+            var envelope = new
+            {
+                data = listResult.Value ?? new List<Shared.Contracts.Catalog.Dtos.ProductDto>(),
+                meta = new { page, pageSize = size, totalCount = total }
+            };
+            return Ok(envelope);
         }
 
         
+        /// <summary>
+        /// Gets products by a list of ids.
+        /// </summary>
         [HttpPost("batch")]
         public async Task<IActionResult> GetProductsByIdList([FromBody] List<Guid> ids)
         {
@@ -73,6 +102,9 @@ namespace CatalogService.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Decreases stock for the given items.
+        /// </summary>
         [HttpPost("decrease")]
         public async Task<IActionResult> DecreaseStock([FromBody] DecreaseStockCommand command, CancellationToken cancellationToken = default)
         {
@@ -83,6 +115,9 @@ namespace CatalogService.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Increases stock for the given items.
+        /// </summary>
         [HttpPost("increase")]
         public async Task<IActionResult> IncreaseStock([FromBody] IncreaseStockCommand command, CancellationToken cancellationToken = default)
         {

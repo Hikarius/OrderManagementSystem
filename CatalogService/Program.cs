@@ -25,6 +25,9 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Pr
 // MediatR pipeline behavior for FluentValidation
 builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(Shared.Application.MediatR.ValidationBehavior<,>));
 
+builder.Services.AddEndpointsApiExplorer(); // Required for OpenAPI/Swagger
+builder.Services.AddSwaggerGen(); // Adds Swagger generation services
+
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "change_this_in_production";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "local"
@@ -102,6 +105,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger(); // Enables Swagger UI
+    app.UseSwaggerUI(); // Configures Swagger UI
 }
 
 // Conditionally apply pending EF Core migrations on startup when MIGRATE_ON_STARTUP=true

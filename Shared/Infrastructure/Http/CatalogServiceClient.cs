@@ -38,7 +38,7 @@ namespace Shared.Infrastructure.Http
                 }
             }
 
-            var resp = await _http.GetAsync($"catalog/{id}");
+            var resp = await _http.GetAsync($"api/v1/products/{id}");
             if (!resp.IsSuccessStatusCode)
                 return new Result<ProductDto> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = null };
 
@@ -79,7 +79,7 @@ namespace Shared.Infrastructure.Http
 
             // Simple approach: POST the ids to an endpoint
             var payload = JsonSerializer.Serialize(ids, _jsonOptions);
-            var resp = await _http.PostAsync("catalog/batch", new StringContent(payload, Encoding.UTF8, "application/json"));
+            var resp = await _http.PostAsync("api/v1/products/batch", new StringContent(payload, Encoding.UTF8, "application/json"));
             if (!resp.IsSuccessStatusCode)
                 return new Result<List<ProductDto>> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = null };
 
@@ -106,7 +106,7 @@ namespace Shared.Infrastructure.Http
             if (items == null || items.Count == 0) return new Result<bool> { IsSuccess = false, ErrorMessage = "Invalid arguments", Value = false };
 
             var payload = JsonSerializer.Serialize(new { Items = items }, _jsonOptions);
-            var resp = await _http.PostAsync($"catalog/decrease", new StringContent(payload, Encoding.UTF8, "application/json"));
+            var resp = await _http.PostAsync($"api/v1/products/decrease", new StringContent(payload, Encoding.UTF8, "application/json"));
             if (!resp.IsSuccessStatusCode)
                 return new Result<bool> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = false };
 
@@ -140,7 +140,7 @@ namespace Shared.Infrastructure.Http
             if (items == null || items.Count == 0) return new Result<bool> { IsSuccess = false, ErrorMessage = "Invalid arguments", Value = false };
 
             var payload = JsonSerializer.Serialize(new { Items = items }, _jsonOptions);
-            var resp = await _http.PostAsync($"catalog/increase", new StringContent(payload, Encoding.UTF8, "application/json"));
+            var resp = await _http.PostAsync($"api/v1/products/increase", new StringContent(payload, Encoding.UTF8, "application/json"));
             if (!resp.IsSuccessStatusCode)
                 return new Result<bool> { IsSuccess = false, ErrorMessage = $"Upstream error {resp.StatusCode}", Value = false };
 

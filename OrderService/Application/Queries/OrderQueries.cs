@@ -86,6 +86,17 @@ namespace OrderService.Application.Queries
             return new Result<List<OrderDto>> { IsSuccess = true, ErrorMessage = string.Empty, Value = orders };
         }
 
+        public async Task<int> GetOrdersTotalCount(GetOrdersFilter? filter)
+        {
+            var dbSet = _repository.GetDbSet().AsQueryable();
+            IQueryable<Domain.Entities.Order> query = dbSet;
+            if (filter != null && filter.Status.HasValue)
+            {
+                query = query.Where(o => o.Status == filter.Status.Value);
+            }
+            return await query.CountAsync();
+        }
+
         public async Task<Result<OrderDto>> GetOrderById(Guid id)
         {
             if (id == Guid.Empty) return new Result<OrderDto> { IsSuccess = false, ErrorMessage = "Invalid id", Value = null };

@@ -153,6 +153,20 @@ namespace CatalogService.Application.Queries
             return new Result<List<ProductDto>> { IsSuccess = true, ErrorMessage = string.Empty, Value = productDtos };
         }
 
+        public async Task<int> GetProductsTotalCount(GetProductsFilter? filter)
+        {
+            var dbSet = _repository.GetDbSet();
+            IQueryable<Product> query = dbSet;
+            if (filter != null)
+            {
+                if (filter.MinPrice.HasValue)
+                    query = query.Where(p => p.Price >= filter.MinPrice.Value);
+                if (filter.MaxPrice.HasValue)
+                    query = query.Where(p => p.Price <= filter.MaxPrice.Value);
+            }
+            return await query.CountAsync();
+        }
+
         public class GetProductsFilter
         {
             public string? SortBy { get; set; }

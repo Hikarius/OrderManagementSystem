@@ -69,10 +69,17 @@ namespace BackofficePortal.Services
             {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
+                // Unwrap Result envelope { value: ... }
                 if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("value", out var valueEl))
                 {
                     var valueJson = valueEl.GetRawText();
                     return JsonSerializer.Deserialize<T>(valueJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                // Unwrap pagination envelope { data: [...], meta: { ... } }
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var dataEl))
+                {
+                    var dataJson = dataEl.GetRawText();
+                    return JsonSerializer.Deserialize<T>(dataJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
             }
             catch

@@ -11,8 +11,11 @@ using Microsoft.Extensions.Configuration;
 
 namespace OrderService.Controllers
 {
+    /// <summary>
+    /// Order management endpoints.
+    /// </summary>
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/v1/orders")]
     public class OrderController : ControllerBase
     {
 
@@ -31,7 +34,10 @@ namespace OrderService.Controllers
             _jwtIssuer = configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "local";
         }
 
-        [HttpPost("/auth/login")]
+        /// <summary>
+        /// Demo login endpoint (for dev only).
+        /// </summary>
+        [HttpPost("/api/v1/auth/login")]
         [AllowAnonymous]
         public IActionResult Login([FromBody] LoginModel model)
         {
@@ -65,7 +71,10 @@ namespace OrderService.Controllers
 
         public class LoginModel { public required string Username { get; set; } public required string Password { get; set; } }
 
-        [HttpPost("AddOrder")]
+        /// <summary>
+        /// Creates a new order.
+        /// </summary>
+        [HttpPost]
         public async Task<IActionResult> AddOrder([FromBody] AddOrderCommand command, CancellationToken cancellationToken = default)
         {
             if (command is null) return BadRequest();
@@ -73,13 +82,27 @@ namespace OrderService.Controllers
             return Ok(result);
         }
 
-        [HttpGet("List")]
+        /// <summary>
+        /// Lists orders with pagination.
+        /// </summary>
+        [HttpGet]
         public async Task<IActionResult> List([FromQuery] OrderQueries.GetOrdersFilter? filter)
         {
-            var result = await _orderQueries.GetOrders(filter);
-            return Ok(result);
+            var listResult = await _orderQueries.GetOrders(filter);
+            var total = await _orderQueries.GetOrdersTotalCount(filter);
+            var page = Math.Max(filter?.PageNumber ?? 1, 1);
+            var size = filter?.PageSize ?? (listResult.Value?.Count ?? 0);
+            var envelope = new
+            {
+                data = listResult.Value ?? new List<Shared.Contracts.Order.OrderDto>(),
+                meta = new { page, pageSize = size, totalCount = total }
+            };
+            return Ok(envelope);
         }
 
+        /// <summary>
+        /// Gets order details by id.
+        /// </summary>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> Detail([FromRoute] Guid id)
         {
@@ -87,7 +110,10 @@ namespace OrderService.Controllers
             return Ok(result);
         }
 
-        [HttpPost("Cancel")]
+        /// <summary>
+        /// Cancels an existing order.
+        /// </summary>
+        [HttpPost("cancel")]
         public async Task<IActionResult> Cancel([FromBody] CancelOrderCommand command, CancellationToken cancellationToken = default)
         {
             if (command is null) return BadRequest();

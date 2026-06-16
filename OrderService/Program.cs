@@ -31,6 +31,9 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddEndpointsApiExplorer(); // Required for OpenAPI/Swagger
+builder.Services.AddSwaggerGen(); // Adds Swagger generation services
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 // MediatR pipeline behavior for FluentValidation
 builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(Shared.Application.MediatR.ValidationBehavior<,>));
@@ -151,6 +154,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger(); // Enables Swagger UI
+    app.UseSwaggerUI(); // Configures Swagger UI
 }
 
 // Apply pending EF Core migrations automatically on startup
