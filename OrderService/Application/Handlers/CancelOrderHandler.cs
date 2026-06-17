@@ -1,8 +1,8 @@
-﻿
-using Shared.Application.MediatR;
-using Shared.Application.Result;
+﻿using Microsoft.EntityFrameworkCore;
 using OrderService.Data.Repositories;
-using Microsoft.EntityFrameworkCore;
+using Shared.Application.MediatR;
+using Shared.Application.Messaging;
+using Shared.Application.Result;
 using Shared.Contracts.Catalog.Dtos;
 using Shared.Infrastructure.Http;
 
@@ -14,11 +14,12 @@ namespace OrderService.Application.Handlers
         public Guid Id { get; set; }
     }
 
-    public class CancelOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, Shared.Infrastructure.Redis.IIdempotencyStore idempotencyStore) : ICommandHandler<CancelOrderCommand, Result>
+    public class CancelOrderCommandHandler(OrderRepository repository, ICatalogServiceClient catalogServiceClient, Shared.Infrastructure.Redis.IIdempotencyStore idempotencyStore, IEventPublisher eventPublisher) : ICommandHandler<CancelOrderCommand, Result>
     {
         private readonly OrderRepository _repository = repository;
         private readonly ICatalogServiceClient _catalogServiceClient = catalogServiceClient;
         private readonly Shared.Infrastructure.Redis.IIdempotencyStore _idempotencyStore = idempotencyStore;
+        private readonly IEventPublisher _eventPublisher = eventPublisher;
 
         public async Task<Result> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
         {
@@ -44,7 +45,8 @@ namespace OrderService.Application.Handlers
             if (order == null) return new Result { IsSuccess = false, ErrorMessage = "Order not found" };
 
             if (order.Status == Shared.Contracts.Order.Enums.OrderStatus.Cancelled)
-                return new Result { IsSuccess = true, ErrorMessage = string.Empty };
+                //return new Result { IsSuccess = true, ErrorMessage = string.Empty };
+                return new Result { IsSuccess = false, ErrorMessage = "Order is already cancelled" };
 
             // Update status
             order.Status = Shared.Contracts.Order.Enums.OrderStatus.Cancelled;
@@ -53,6 +55,17 @@ namespace OrderService.Application.Handlers
             {
                 _repository.Update(order);
                 await _repository.UnitOfWork.SaveChangesAsync(cancellationToken);
+
+                var ev = new Shared.Contracts.Messaging.OrderCancelledEvent
+                {
+                    OrderId = order.Id,
+                    CustomerEmail = order.CustomerEmail,
+                    TotalPrice = order.TotalPrice,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _eventPublisher.PublishAsync(ev, cancellationToken);
+
 
                 // Prepare increase stock items
                 var increaseItems = order.Items.Select(i => new IncreaseItemDto { ProductId = i.ProductId, Quantity = i.Quantity }).ToList();

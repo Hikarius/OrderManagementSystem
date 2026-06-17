@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NotificationService.Data;
 using Microsoft.EntityFrameworkCore;
+using NotificationService.Data;
 
 namespace NotificationService.Controllers
 {
@@ -9,6 +10,7 @@ namespace NotificationService.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/notifications")]
+    [Authorize]
     public class NotificationController : ControllerBase
     {       
 

@@ -16,6 +16,7 @@ namespace OrderService.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/orders")]
+    [Authorize]
     public class OrderController : ControllerBase
     {
 

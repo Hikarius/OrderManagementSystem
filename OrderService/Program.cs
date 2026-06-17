@@ -1,15 +1,15 @@
-using Microsoft.EntityFrameworkCore;
-// Ensure EF Core extension methods are available (kept for clarity)
-using MassTransit;
-using Shared.Infrastructure.Http;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using StackExchange.Redis;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Formatting.Compact;
+using Shared.Infrastructure.Http;
+using StackExchange.Redis;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,23 +21,37 @@ builder.Host.UseSerilog((ctx, lc) => lc
     .Enrich.FromLogContext()
     .Enrich.WithProperty("Application", "OrderService")
     .WriteTo.Console(new RenderedCompactJsonFormatter()));
-// Services are configured below.
-
-// MassTransit 8.x doesn't require license gating
-
-// Add services to the container.
 
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer(); // Required for OpenAPI/Swagger
-builder.Services.AddSwaggerGen(); // Adds Swagger generation services
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFile = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (System.IO.File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Description = "Paste only the JWT token here. The 'Bearer ' prefix is added automatically.",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+}); 
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 // MediatR pipeline behavior for FluentValidation
 builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(Shared.Application.MediatR.ValidationBehavior<,>));
 
 // JWT Authentication (simple symmetric key)
-var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "change_this_in_production";
+// Keep default consistent with OrderController token issuer so Swagger/local works without extra config
+var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "dev_super_secret_key_please_change_0123456789ABCDEF";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "local";
 builder.Services.AddAuthentication(options =>
 {

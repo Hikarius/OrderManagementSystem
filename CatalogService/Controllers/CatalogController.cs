@@ -1,7 +1,5 @@
 using CatalogService.Application.Handlers;
 using CatalogService.Application.Queries;
-using MassTransit.Mediator;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using IMediator = MediatR.IMediator;
@@ -13,7 +11,8 @@ namespace CatalogService.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/products")]
-    public class CatalogController(ILogger<CatalogController> logger, IMediator mediator, Application.Queries.ProductQueries productQueries) : ControllerBase
+    [Authorize]
+    public class CatalogController(ILogger<CatalogController> logger, IMediator mediator, ProductQueries productQueries) : ControllerBase
     {
         private readonly ILogger<CatalogController> _logger = logger;
         private readonly IMediator _mediator = mediator;

@@ -43,6 +43,7 @@ services:
         condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=orderservice_db;Username=postgres;Password=postgres
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Username=guest
@@ -52,6 +53,8 @@ services:
       - JWT_ISSUER=local
       - CATALOGSERVICE_BASEADDRESS=http://catalogservice:8080
     restart: unless-stopped
+    ports:
+      - "5003:8080"
 
   catalogservice:
     build:
@@ -66,6 +69,7 @@ services:
         condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=catalogservice_db;Username=postgres;Password=postgres
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Username=guest
@@ -74,6 +78,8 @@ services:
       - JWT_KEY=dev_super_secret_key_please_change_0123456789ABCDEF
       - JWT_ISSUER=local
     restart: unless-stopped
+    ports:
+      - "5002:8080"
 
   notificationservice:
     build:
@@ -88,6 +94,7 @@ services:
         condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=notificationservice_db;Username=postgres;Password=postgres
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Username=guest
@@ -95,6 +102,8 @@ services:
       - Redis__Configuration=redis:6379
       # MassTransit 8.x: no license env required
     restart: unless-stopped
+    ports:
+      - "5004:8080"
 
   rabbitmq:
     image: rabbitmq:3-management

@@ -4,6 +4,13 @@ Bu proje, .NET 9 teknolojileri kullanılarak geliştirilmiş bir Mini Sipariş Y
 
 Uygulamaya admin-pass veya operator-pass ile giriş yapılabilir.
 
+Varsayılan endpointler:
+Önyüz: http://localhost:5000/
+Catalog Service Swagger: http://localhost:5002/swagger
+Order Service Swagger: http://localhost:5003/swagger
+Notification Service Swagger: http://localhost:5004/swagger
+PgAdmin: http://localhost:5050/
+
 ## Mimari Genel Bakış
 
 Sistem, aşağıdaki ana bileşenlerden oluşmaktadır:
