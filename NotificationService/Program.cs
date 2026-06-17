@@ -90,11 +90,11 @@ var app = builder.Build();
 // The concrete registration follows the pattern implemented in OrderService/Program.cs
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger(); // Enables Swagger UI
     app.UseSwaggerUI(); // Configures Swagger UI
-}
+//}
 
 // Apply pending EF Core migrations automatically on startup
 using (var scope = app.Services.CreateScope())

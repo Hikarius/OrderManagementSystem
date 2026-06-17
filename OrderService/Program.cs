@@ -149,11 +149,11 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger(); // Enables Swagger UI
     app.UseSwaggerUI(); // Configures Swagger UI
-}
+//}
 
 // Apply pending EF Core migrations automatically on startup
 using (var scope = app.Services.CreateScope())
