@@ -1,5 +1,6 @@
 using CatalogService.Data.Repositories;
 using CatalogService.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Shared.Application.MediatR;
 using Shared.Application.Result;
 
@@ -25,6 +26,9 @@ namespace CatalogService.Application.Handlers
         public async Task<Result<Guid>> Handle(AddProductCommand request, CancellationToken cancellationToken)
         {
             if (request is null) return new Result<Guid> { IsSuccess = false, ErrorMessage = "Request cannot be null."};
+
+            var existingProduct = await repository.GetDbSet().FirstOrDefaultAsync(p => p.Name == request.Name, cancellationToken);
+            if (existingProduct != null) return new Result<Guid> { IsSuccess = false, ErrorMessage = "A product with the same name already exists." };
 
             var newProduct = new Product
             {

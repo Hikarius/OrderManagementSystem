@@ -202,7 +202,18 @@ $(function(){
                 }
             })
             .fail(function(xhr){
-                var msg = 'Error ' + xhr.status + ' ' + (xhr.statusText||'') + ' ' + (xhr.responseText||'');
+                var msg = 'Error ' + xhr.status + ' ' + (xhr.statusText||'');
+                // try to extract backend Result error message
+                try{
+                    if(xhr.responseText){
+                        var o = JSON.parse(xhr.responseText);
+                        if(typeof o === 'object'){
+                            if(typeof o.error === 'string') msg += ' - ' + o.error;
+                            else if(typeof o.errorMessage === 'string') msg += ' - ' + o.errorMessage;
+                            else if(o.value && o.value.errorMessage) msg += ' - ' + o.value.errorMessage;
+                        }
+                    }
+                }catch{}
                 $t.text(msg);
             });
 

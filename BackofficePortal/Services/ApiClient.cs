@@ -69,6 +69,17 @@ namespace BackofficePortal.Services
             {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
+                // Respect Result<T> error pattern
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("isSuccess", out var okEl))
+                {
+                    if (okEl.ValueKind == JsonValueKind.False)
+                    {
+                        var msg = root.TryGetProperty("errorMessage", out var errEl) && errEl.ValueKind == JsonValueKind.String
+                            ? errEl.GetString()
+                            : "Request failed";
+                        throw new HttpRequestException(msg ?? "Request failed");
+                    }
+                }
                 // Unwrap Result envelope { value: ... }
                 if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("value", out var valueEl))
                 {

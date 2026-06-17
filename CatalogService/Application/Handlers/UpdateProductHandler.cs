@@ -1,4 +1,5 @@
 ﻿using CatalogService.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Shared.Application.MediatR;
 using Shared.Application.Result;
 
@@ -27,6 +28,9 @@ namespace CatalogService.Application.Handlers
 
             var product = await repository.GetByIdAsync(request.Id, cancellationToken);
             if (product is null) return new Result<Guid> { IsSuccess = false, ErrorMessage = "Product not found." };
+
+            var existingProductWithSameName = await repository.GetDbSet().FirstOrDefaultAsync(p => p.Name == request.Name && p.Id != request.Id, cancellationToken);
+            if(existingProductWithSameName is not null) return new Result<Guid> { IsSuccess = false, ErrorMessage = "A product with the same name already exists." };
 
             product.Name = request.Name;
             product.Description = request.Description;
