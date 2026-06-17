@@ -20,9 +20,20 @@
 
     <div class="tab-content mt-3">
       <div class="tab-pane fade show active" id="orders" role="tabpanel">
-        <p>
+        <div class="d-flex gap-2 align-items-center">
             <a id="btnLoadOrders" class="btn btn-sm btn-secondary" href="/Home/GetOrders" data-target="#ordersContent">Load Orders</a>
-        </p>
+            <div class="input-group input-group-sm" style="width:260px;">
+                <span class="input-group-text">Page</span>
+                <input type="number" id="ordersPage" class="form-control" value="1" min="1" />
+                <span class="input-group-text">Size</span>
+                <input type="number" id="ordersPageSize" class="form-control" value="10" min="1" />
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button id="ordersPrev" type="button" class="btn btn-outline-secondary">Prev</button>
+                <button id="ordersNext" type="button" class="btn btn-outline-secondary">Next</button>
+            </div>
+            <span id="ordersPageInfo" class="small text-muted"></span>
+        </div>
         <div id="ordersContent"></div>
 
         <div class="mt-3" id="orderActions" style="display:none;">
@@ -66,9 +77,20 @@
         </form>
       </div>
       <div class="tab-pane fade" id="catalog" role="tabpanel">
-        <p>
+        <div class="d-flex gap-2 align-items-center">
             <a id="btnLoadProducts" class="btn btn-sm btn-secondary" href="/Home/GetProducts" data-target="#catalogContent">Load Products</a>
-        </p>
+            <div class="input-group input-group-sm" style="width:260px;">
+                <span class="input-group-text">Page</span>
+                <input type="number" id="productsPage" class="form-control" value="1" min="1" />
+                <span class="input-group-text">Size</span>
+                <input type="number" id="productsPageSize" class="form-control" value="10" min="1" />
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button id="productsPrev" type="button" class="btn btn-outline-secondary">Prev</button>
+                <button id="productsNext" type="button" class="btn btn-outline-secondary">Next</button>
+            </div>
+            <span id="productsPageInfo" class="small text-muted"></span>
+        </div>
         <div id="catalogContent"></div>
         <hr />
         <h5>Product CRUD</h5>

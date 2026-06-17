@@ -125,7 +125,7 @@ namespace OrderService.Application.Handlers
                 // publish event (fire-and-forget)
                 try
                 {
-                    var itemsDto = newOrder.Items.Select(i => new Shared.Contracts.Order.OrderItemDto
+                    var itemsDto = newOrder.Items.Select(i => new OrderItemDto
                     {
                         Id = i.Id,
                         ProductId = i.ProductId,
@@ -144,7 +144,10 @@ namespace OrderService.Application.Handlers
                         CreatedAt = DateTime.UtcNow
                     };
 
-                    await _eventPublisher.PublishAsync(ev);
+                    await _eventPublisher.PublishAsync(ev, cancellationToken);
+
+                    newOrder.Status = OrderStatus.Confirmed;
+                    await _repository.UnitOfWork.SaveChangesAsync(cancellationToken);
                 }
                 catch
                 {

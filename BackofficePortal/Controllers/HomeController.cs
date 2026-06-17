@@ -78,11 +78,13 @@ namespace BackofficePortal.Controllers
             return RedirectToAction(nameof(Login));
         }
 
-        public async Task<IActionResult> GetOrders()
+        public async Task<IActionResult> GetOrders(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
-                var data = await _apiClient.GetAsync<object[]>("OrderService", "/api/v1/orders");
+                pageNumber = pageNumber <= 0 ? 1 : pageNumber;
+                pageSize = pageSize <= 0 ? 10 : pageSize;
+                var data = await _apiClient.GetAsync<object[]>("OrderService", $"/api/v1/orders?pageNumber={pageNumber}&pageSize={pageSize}");
                 return Json(data);
             }
             catch (Exception ex)
@@ -138,11 +140,13 @@ namespace BackofficePortal.Controllers
             }
         }
 
-        public async Task<IActionResult> GetProducts()
+        public async Task<IActionResult> GetProducts(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
-                var data = await _apiClient.GetAsync<object[]>("CatalogService", "/api/v1/products");
+                pageNumber = pageNumber <= 0 ? 1 : pageNumber;
+                pageSize = pageSize <= 0 ? 10 : pageSize;
+                var data = await _apiClient.GetAsync<object[]>("CatalogService", $"/api/v1/products?pageNumber={pageNumber}&pageSize={pageSize}");
                 return Json(data);
             }
             catch (Exception ex)

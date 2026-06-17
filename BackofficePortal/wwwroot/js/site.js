@@ -122,6 +122,9 @@ $(function(){
             $('#cancelResult').text('Cancelled');
             // refresh orders
             $('#btnLoadOrders').trigger('click');
+            // refresh catalog (stock may have changed) and invalidate cached products
+            cachedProducts = null;
+            $('#btnLoadProducts').trigger('click');
         }).fail(function(xhr){
             $('#cancelResult').text('Error ' + xhr.status + ' ' + (xhr.responseText||xhr.statusText));
         });
@@ -174,6 +177,14 @@ $(function(){
     $(document).on('click', 'a[href^="/Home/Get"]', function(e){
         e.preventDefault();
         var url = $(this).attr('href');
+        // attach paging if available
+        if(url.endsWith('GetOrders')){
+            var pn = parseInt($('#ordersPage').val()||'1',10); var ps = parseInt($('#ordersPageSize').val()||'10',10);
+            url += '?pageNumber='+ encodeURIComponent(pn) + '&pageSize=' + encodeURIComponent(ps);
+        } else if(url.endsWith('GetProducts')){
+            var pn2 = parseInt($('#productsPage').val()||'1',10); var ps2 = parseInt($('#productsPageSize').val()||'10',10);
+            url += '?pageNumber='+ encodeURIComponent(pn2) + '&pageSize=' + encodeURIComponent(ps2);
+        }
         // prevent caching issues
         var sep = url.indexOf('?') === -1 ? '?' : '&';
         var fullUrl = url + sep + '_ts=' + Date.now();
@@ -183,11 +194,35 @@ $(function(){
         $.get(fullUrl)
             .done(function(data){
                 renderData($t, data);
+                // update page info labels (no total count available; reflect current page/size)
+                if(fullUrl.indexOf('/Home/GetOrders') === 0){
+                    $('#ordersPageInfo').text('Page '+($('#ordersPage').val()||1)+', Size '+($('#ordersPageSize').val()||10));
+                } else if(fullUrl.indexOf('/Home/GetProducts') === 0){
+                    $('#productsPageInfo').text('Page '+($('#productsPage').val()||1)+', Size '+($('#productsPageSize').val()||10));
+                }
             })
             .fail(function(xhr){
                 var msg = 'Error ' + xhr.status + ' ' + (xhr.statusText||'') + ' ' + (xhr.responseText||'');
                 $t.text(msg);
             });
+
+    // Prev/Next handlers
+    $(document).on('click', '#ordersPrev', function(){
+        var p = Math.max(1, (parseInt($('#ordersPage').val()||'1',10) - 1));
+        $('#ordersPage').val(p); $('#btnLoadOrders').trigger('click');
+    });
+    $(document).on('click', '#ordersNext', function(){
+        var p = (parseInt($('#ordersPage').val()||'1',10) + 1);
+        $('#ordersPage').val(p); $('#btnLoadOrders').trigger('click');
+    });
+    $(document).on('click', '#productsPrev', function(){
+        var p = Math.max(1, (parseInt($('#productsPage').val()||'1',10) - 1));
+        $('#productsPage').val(p); $('#btnLoadProducts').trigger('click');
+    });
+    $(document).on('click', '#productsNext', function(){
+        var p = (parseInt($('#productsPage').val()||'1',10) + 1);
+        $('#productsPage').val(p); $('#btnLoadProducts').trigger('click');
+    });
     });
 
     // Dynamic order items handling
@@ -245,6 +280,9 @@ $(function(){
             if(res && res.success){
                 alert('Order created: ' + res.orderId);
                 $('#ordersContent').text('');
+                // refresh catalog (stock decreased) and invalidate cached products used by selector
+                cachedProducts = null;
+                $('#btnLoadProducts').trigger('click');
             } else {
                 alert('Failed: ' + (res && res.error ? res.error : 'Unknown'));
             }
