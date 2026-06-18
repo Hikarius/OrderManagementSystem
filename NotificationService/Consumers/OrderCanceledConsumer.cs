@@ -1,15 +1,15 @@
-using MassTransit;
-using Shared.Contracts.Messaging;
+﻿using MassTransit;
 using NotificationService.Data;
 using NotificationService.Domain.Entities;
+using Shared.Contracts.Messaging;
 
 namespace NotificationService.Consumers
 {
-    public class OrderCreatedConsumer(DataContext db) : IConsumer<OrderCreatedEvent>
+    public class OrderCanceledConsumer(DataContext db) : IConsumer<OrderCancelledEvent>
     {
         private readonly DataContext _db = db;
 
-        public async Task Consume(ConsumeContext<OrderCreatedEvent> context)
+        public async Task Consume(ConsumeContext<OrderCancelledEvent> context)
         {
             var message = context.Message;
 
@@ -17,7 +17,7 @@ namespace NotificationService.Consumers
             {
                 OrderId = message.OrderId,
                 Channel = "Email",
-                Message = $"Order {message.OrderId} created for {message.CustomerEmail}"
+                Message = $"Order {message.OrderId} cancelled for {message.CustomerEmail}"
             };
 
             _db.Add(notification);

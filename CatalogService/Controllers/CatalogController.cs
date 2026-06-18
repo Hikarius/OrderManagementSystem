@@ -28,7 +28,12 @@ namespace CatalogService.Controllers
                 return BadRequest();
 
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if (result.IsSuccess == false)
+            {
+                _logger.LogError("Failed to add product: {ErrorMessage}", result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -41,7 +46,12 @@ namespace CatalogService.Controllers
                 return BadRequest();
 
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if(result.IsSuccess == false)
+            {
+                _logger.LogError("Failed to update product: {ErrorMessage}", result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -56,7 +66,12 @@ namespace CatalogService.Controllers
 
             var command = new DeleteProductCommand(id);
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if (result.IsSuccess == false)
+            {
+                _logger.LogError("Failed to delete product: {ErrorMessage}", result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -69,7 +84,7 @@ namespace CatalogService.Controllers
                 return BadRequest();
 
             var result = await _productQueries.GetProductById(id);
-            return Ok(result);
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -98,7 +113,12 @@ namespace CatalogService.Controllers
         public async Task<IActionResult> GetProductsByIdList([FromBody] List<Guid> ids)
         {
             var result = await _productQueries.GetProductsByIdList(ids ?? new List<Guid>());
-            return Ok(result);
+            if(result.IsSuccess == false)
+            {
+                _logger.LogError("Failed to get products by id list: {ErrorMessage}", result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -111,7 +131,12 @@ namespace CatalogService.Controllers
                 return BadRequest();
 
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if(result.IsSuccess == false)
+            {
+                _logger.LogError("Failed to decrease stock: {ErrorMessage}", result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -124,7 +149,12 @@ namespace CatalogService.Controllers
                 return BadRequest();
 
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if(result.IsSuccess == false)
+            {
+                _logger.LogError("Failed to increase stock: {ErrorMessage}", result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
     }
 }

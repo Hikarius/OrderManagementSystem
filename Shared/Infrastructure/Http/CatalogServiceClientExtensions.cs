@@ -15,13 +15,17 @@ namespace Shared.Infrastructure.Http
         public static IServiceCollection AddCatalogServiceClient(this IServiceCollection services, string baseAddress)
         {
             services.TryAddTransient<CorrelationIdDelegatingHandler>();
+            services.TryAddTransient<AuthorizationDelegatingHandler>();
             services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
             services.AddHttpClient<ICatalogServiceClient, CatalogServiceClient>(client =>
             {
                 client.BaseAddress = new Uri(baseAddress);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.Timeout = TimeSpan.FromSeconds(10);
             })
+            // Ensure authorization header is forwarded from incoming request when present
+            .AddHttpMessageHandler<AuthorizationDelegatingHandler>()
             .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
             .AddPolicyHandler(GetRetryPolicy())
             .AddPolicyHandler(GetCircuitBreakerPolicy());
@@ -64,6 +68,32 @@ namespace Shared.Infrastructure.Http
             if (!request.Headers.Contains(HeaderName))
             {
                 request.Headers.Add(HeaderName, correlationId);
+            }
+            return base.SendAsync(request, cancellationToken);
+        }
+    }
+
+    // DelegatingHandler that forwards the Authorization header (Bearer token) from the incoming HTTP context
+    internal sealed class AuthorizationDelegatingHandler : DelegatingHandler
+    {
+        private const string AuthorizationHeader = "Authorization";
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public AuthorizationDelegatingHandler(IHttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var ctx = _httpContextAccessor.HttpContext;
+            if (ctx != null && ctx.Request.Headers.TryGetValue(AuthorizationHeader, out var values) && !StringValues.IsNullOrEmpty(values))
+            {
+                var val = values.ToString();
+                if (!request.Headers.Contains(AuthorizationHeader))
+                {
+                    request.Headers.Add(AuthorizationHeader, val);
+                }
             }
             return base.SendAsync(request, cancellationToken);
         }

@@ -80,7 +80,11 @@ namespace OrderService.Controllers
         {
             if (command is null) return BadRequest();
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if(result.IsSuccess == false)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -90,6 +94,10 @@ namespace OrderService.Controllers
         public async Task<IActionResult> List([FromQuery] OrderQueries.GetOrdersFilter? filter)
         {
             var listResult = await _orderQueries.GetOrders(filter);
+            if (listResult.IsSuccess == false)
+            {
+                return BadRequest(listResult.ErrorMessage);
+            }
             var total = await _orderQueries.GetOrdersTotalCount(filter);
             var page = Math.Max(filter?.PageNumber ?? 1, 1);
             var size = filter?.PageSize ?? (listResult.Value?.Count ?? 0);
@@ -108,7 +116,11 @@ namespace OrderService.Controllers
         public async Task<IActionResult> Detail([FromRoute] Guid id)
         {
             var result = await _orderQueries.GetOrderById(id);
-            return Ok(result);
+            if(result.IsSuccess == false)
+            {
+                return NotFound(result.ErrorMessage);
+            }
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -119,7 +131,11 @@ namespace OrderService.Controllers
         {
             if (command is null) return BadRequest();
             var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
+            if (result.IsSuccess == false)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok();
         }
         
     }

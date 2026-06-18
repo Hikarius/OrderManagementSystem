@@ -39,6 +39,10 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
+    options.AddSecurityRequirement((document) => new OpenApiSecurityRequirement()
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
 }); // Adds Swagger generation services with XML comments + JWT
 
 // JWT auth simple - align default with OrderService so the same dev token works across services

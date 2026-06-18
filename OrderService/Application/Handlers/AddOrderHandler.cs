@@ -152,7 +152,6 @@ namespace OrderService.Application.Handlers
                 }
                 catch
                 {
-                    // swallow; publishing failure should not block order creation
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
