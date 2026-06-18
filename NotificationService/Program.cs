@@ -80,6 +80,7 @@ builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(Share
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<OrderCreatedConsumer>();
+    x.AddConsumer<OrderCancelledConsumer>();
     x.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "rabbitmq");

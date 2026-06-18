@@ -43,16 +43,16 @@ namespace OrderService.Data.Migrations
 
             // Add foreign key only if it does not already exist (avoids errors when constraint already present)
             migrationBuilder.Sql(@"DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'FK_OrderItems_Orders_OrderId'
-    ) THEN
-        ALTER TABLE ""OrderItems""
-        ADD CONSTRAINT ""FK_OrderItems_Orders_OrderId""
-        FOREIGN KEY (""OrderId"") REFERENCES ""Orders""(""Id"") ON DELETE CASCADE;
-    END IF;
-END
-$$;");
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint WHERE conname = 'FK_OrderItems_Orders_OrderId'
+                    ) THEN
+                        ALTER TABLE ""OrderItems""
+                        ADD CONSTRAINT ""FK_OrderItems_Orders_OrderId""
+                        FOREIGN KEY (""OrderId"") REFERENCES ""Orders""(""Id"") ON DELETE CASCADE;
+                    END IF;
+                END
+                $$;");
         }
 
         /// <inheritdoc />

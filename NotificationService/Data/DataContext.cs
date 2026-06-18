@@ -13,7 +13,10 @@ namespace NotificationService.Data
             modelBuilder.Entity<NotificationService.Domain.Entities.Notification>(builder =>
             {
                 builder.ToTable("Notifications");
-                builder.HasKey(n => n.OrderId);
+                // Use Id as primary key so multiple notifications can exist for the same OrderId
+                builder.HasKey(n => n.Id);
+                builder.Property(n => n.Id).ValueGeneratedOnAdd();
+                builder.Property(n => n.OrderId).IsRequired();
                 builder.Property(n => n.Channel).IsRequired().HasMaxLength(50);
                 builder.Property(n => n.Message).IsRequired();
             });

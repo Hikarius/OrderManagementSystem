@@ -5,7 +5,7 @@ using Shared.Contracts.Messaging;
 
 namespace NotificationService.Consumers
 {
-    public class OrderCanceledConsumer(DataContext db) : IConsumer<OrderCancelledEvent>
+    public class OrderCancelledConsumer(DataContext db) : IConsumer<OrderCancelledEvent>
     {
         private readonly DataContext _db = db;
 
