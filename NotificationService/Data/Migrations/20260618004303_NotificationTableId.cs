@@ -12,9 +12,7 @@ namespace NotificationService.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Remove all existing rows so changing the primary key does not cause conflicts
-            migrationBuilder.Sql(@"DO $$
-                DELETE FROM ""Notifications"";
-                $$;");
+            migrationBuilder.Sql("DELETE FROM \"Notifications\";");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_Notifications",

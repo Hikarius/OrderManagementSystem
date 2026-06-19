@@ -201,6 +201,9 @@ app.UseMiddleware<Shared.Middleware.ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Redirect root URL to Swagger UI for convenience (hidden from Swagger)
+app.MapGet("/", () => Results.Redirect("/swagger/index.html")).ExcludeFromDescription();
+
 app.MapControllers();
 app.MapHealthChecks("/health");
 
