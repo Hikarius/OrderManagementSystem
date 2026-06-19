@@ -3,6 +3,34 @@
 
 // Write your JavaScript code.
 $(function(){
+    function extractXhrError(xhr){
+        try{
+            if(xhr && xhr.responseText){
+                var txt = xhr.responseText;
+                // Sometimes backend returns quoted string
+                if((txt.startsWith('"') && txt.endsWith('"')) || (txt.startsWith("'") && txt.endsWith("'"))){
+                    return txt.substring(1, txt.length-1);
+                }
+                var o = JSON.parse(txt);
+                if(typeof o === 'string') return o;
+                if(o){
+                    if(typeof o.error === 'string') return o.error;
+                    if(typeof o.errorMessage === 'string') return o.errorMessage;
+                    if(typeof o.message === 'string') return o.message;
+                    if(typeof o.detail === 'string') return o.detail;
+                    if(typeof o.title === 'string') return o.title;
+                    if(o.value && typeof o.value.errorMessage === 'string') return o.value.errorMessage;
+                    if(o.errors){
+                        for(var k in o.errors){
+                            var arr = o.errors[k];
+                            if(Array.isArray(arr) && arr.length && typeof arr[0] === 'string') return arr[0];
+                        }
+                    }
+                }
+            }
+        }catch{}
+        return xhr && (xhr.statusText || ('HTTP '+xhr.status)) || 'Request failed';
+    }
     function mapTarget(url, $link){
         // honor explicit data-target first
         var explicit = $link && $link.attr('data-target');
@@ -48,7 +76,7 @@ $(function(){
         };
         $.ajax({ url: '/Home/AddProduct', type: 'POST', data: JSON.stringify(body), contentType: 'application/json' })
           .done(function(res){ alert(res.success? 'Added: '+res.id : 'Failed'); $('#btnLoadProducts').trigger('click'); })
-          .fail(function(xhr){ alert('Error '+xhr.status+': '+(xhr.responseText||xhr.statusText)); });
+          .fail(function(xhr){ alert('Error '+xhr.status+': '+ extractXhrError(xhr)); });
     });
 
     $(document).on('click', '#btnUpdateProduct', function(){
@@ -63,14 +91,14 @@ $(function(){
         };
         $.ajax({ url: '/Home/UpdateProduct', type: 'PUT', data: JSON.stringify(body), contentType: 'application/json' })
           .done(function(res){ alert(res.success? 'Updated: '+res.id : 'Failed'); $('#btnLoadProducts').trigger('click'); })
-          .fail(function(xhr){ alert('Error '+xhr.status+': '+(xhr.responseText||xhr.statusText)); });
+          .fail(function(xhr){ alert('Error '+xhr.status+': '+ extractXhrError(xhr)); });
     });
 
     $(document).on('click', '#btnDeleteProduct', function(){
         var id = $('#selectedProductId').val(); if(!id){ alert('Select a product'); return; }
         $.ajax({ url: '/Home/DeleteProduct?id='+encodeURIComponent(id), type: 'DELETE' })
           .done(function(res){ alert(res.success? 'Deleted: '+res.id : 'Failed'); $('#btnLoadProducts').trigger('click'); })
-          .fail(function(xhr){ alert('Error '+xhr.status+': '+(xhr.responseText||xhr.statusText)); });
+          .fail(function(xhr){ alert('Error '+xhr.status+': '+ extractXhrError(xhr)); });
     });
 
     // Select order row
@@ -101,7 +129,7 @@ $(function(){
                     $('#orderDetail').html(html);
                 }catch(ex){ $('#orderDetail').text('Render error: '+ex); }
             }).fail(function(xhr){
-                $('#orderDetail').text('Error ' + xhr.status + ' ' + (xhr.responseText||xhr.statusText));
+                $('#orderDetail').text('Error ' + xhr.status + ' ' + extractXhrError(xhr));
             });
         } else {
             $('#orderDetail').empty();
@@ -126,7 +154,7 @@ $(function(){
             cachedProducts = null;
             $('#btnLoadProducts').trigger('click');
         }).fail(function(xhr){
-            $('#cancelResult').text('Error ' + xhr.status + ' ' + (xhr.responseText||xhr.statusText));
+            $('#cancelResult').text('Error ' + xhr.status + ' ' + extractXhrError(xhr));
         });
     });
                     html += '</tbody></table>';
@@ -202,18 +230,7 @@ $(function(){
                 }
             })
             .fail(function(xhr){
-                var msg = 'Error ' + xhr.status + ' ' + (xhr.statusText||'');
-                // try to extract backend Result error message
-                try{
-                    if(xhr.responseText){
-                        var o = JSON.parse(xhr.responseText);
-                        if(typeof o === 'object'){
-                            if(typeof o.error === 'string') msg += ' - ' + o.error;
-                            else if(typeof o.errorMessage === 'string') msg += ' - ' + o.errorMessage;
-                            else if(o.value && o.value.errorMessage) msg += ' - ' + o.value.errorMessage;
-                        }
-                    }
-                }catch{}
+                var msg = 'Error ' + xhr.status + ' ' + extractXhrError(xhr);
                 $t.text(msg);
             });
 
@@ -298,7 +315,7 @@ $(function(){
                 alert('Failed: ' + (res && res.error ? res.error : 'Unknown'));
             }
         }).fail(function(xhr){
-            alert('Error ' + xhr.status + ': ' + (xhr.responseText || xhr.statusText));
+            alert('Error ' + xhr.status + ': ' + extractXhrError(xhr));
         });
     });
 });

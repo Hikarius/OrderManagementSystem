@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using System.Net;
 
 namespace BackofficePortal.Services
 {
@@ -29,7 +30,11 @@ namespace BackofficePortal.Services
             var client = _factory.CreateClient(clientName);
             AttachJwt(client);
             var res = await client.GetAsync(url);
-            res.EnsureSuccessStatusCode();
+            if (!res.IsSuccessStatusCode)
+            {
+                var msg = await ExtractErrorMessage(res);
+                throw new HttpRequestException(msg);
+            }
             return await ReadAsJsonAsync<T>(res);
         }
 
@@ -38,7 +43,11 @@ namespace BackofficePortal.Services
             var client = _factory.CreateClient(clientName);
             AttachJwt(client);
             var res = await client.PostAsJsonAsync(url, body);
-            res.EnsureSuccessStatusCode();
+            if (!res.IsSuccessStatusCode)
+            {
+                var msg = await ExtractErrorMessage(res);
+                throw new HttpRequestException(msg);
+            }
             return await ReadAsJsonAsync<T>(res);
         }
 
@@ -47,7 +56,11 @@ namespace BackofficePortal.Services
             var client = _factory.CreateClient(clientName);
             AttachJwt(client);
             var res = await client.PutAsJsonAsync(url, body);
-            res.EnsureSuccessStatusCode();
+            if (!res.IsSuccessStatusCode)
+            {
+                var msg = await ExtractErrorMessage(res);
+                throw new HttpRequestException(msg);
+            }
             return await ReadAsJsonAsync<T>(res);
         }
 
@@ -56,7 +69,11 @@ namespace BackofficePortal.Services
             var client = _factory.CreateClient(clientName);
             AttachJwt(client);
             var res = await client.DeleteAsync(url);
-            res.EnsureSuccessStatusCode();
+            if (!res.IsSuccessStatusCode)
+            {
+                var msg = await ExtractErrorMessage(res);
+                throw new HttpRequestException(msg);
+            }
             return await ReadAsJsonAsync<T>(res);
         }
 
@@ -99,6 +116,76 @@ namespace BackofficePortal.Services
             }
 
             return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        private static async Task<string> ExtractErrorMessage(HttpResponseMessage res)
+        {
+            string fallback = $"HTTP {(int)res.StatusCode} {res.ReasonPhrase}";
+            string content = string.Empty;
+            try
+            {
+                content = await res.Content.ReadAsStringAsync();
+                if (string.IsNullOrWhiteSpace(content)) return fallback;
+
+                // Try JSON first
+                try
+                {
+                    using var doc = JsonDocument.Parse(content);
+                    var root = doc.RootElement;
+                    if (root.ValueKind == JsonValueKind.Object)
+                    {
+                        // Result pattern
+                        if (root.TryGetProperty("isSuccess", out var okEl) && okEl.ValueKind == JsonValueKind.False)
+                        {
+                            if (root.TryGetProperty("errorMessage", out var errEl) && errEl.ValueKind == JsonValueKind.String)
+                                return errEl.GetString() ?? fallback;
+                        }
+                        // ProblemDetails
+                        if (root.TryGetProperty("detail", out var detailEl) && detailEl.ValueKind == JsonValueKind.String)
+                            return detailEl.GetString() ?? fallback;
+                        if (root.TryGetProperty("title", out var titleEl) && titleEl.ValueKind == JsonValueKind.String)
+                            return titleEl.GetString() ?? fallback;
+                        // Generic message fields
+                        if (root.TryGetProperty("errorMessage", out var emEl) && emEl.ValueKind == JsonValueKind.String)
+                            return emEl.GetString() ?? fallback;
+                        if (root.TryGetProperty("message", out var mEl) && mEl.ValueKind == JsonValueKind.String)
+                            return mEl.GetString() ?? fallback;
+                        // ModelState errors: { errors: { field: ["msg1", ...] } }
+                        if (root.TryGetProperty("errors", out var errorsEl) && errorsEl.ValueKind == JsonValueKind.Object)
+                        {
+                            foreach (var prop in errorsEl.EnumerateObject())
+                            {
+                                if (prop.Value.ValueKind == JsonValueKind.Array)
+                                {
+                                    foreach (var item in prop.Value.EnumerateArray())
+                                    {
+                                        if (item.ValueKind == JsonValueKind.String)
+                                            return item.GetString() ?? fallback;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if (root.ValueKind == JsonValueKind.String)
+                    {
+                        return root.GetString() ?? fallback;
+                    }
+                }
+                catch
+                {
+                    // not json, fall through
+                }
+
+                // Plain text body
+                var text = content.Trim('"', '\'', '\n', '\r', '\t', ' ');
+                if (!string.IsNullOrWhiteSpace(text)) return text;
+            }
+            catch
+            {
+                // ignore and use fallback
+            }
+
+            return fallback;
         }
     }
 }
